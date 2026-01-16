@@ -18,7 +18,7 @@
     "@deck.gl/layers": "8.9.35",
     "@deck.gl/react": "8.9.35",
     "deck.gl": "8.9.35",
-    "@google/genai": "0.2.1"
+    "@google/generative-ai": "^0.21.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

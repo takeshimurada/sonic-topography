@@ -1,18 +1,35 @@
-import React, { useEffect, useState } from 'react';
-import { X, Sparkles, Music, Star, Share2, Globe, ListMusic, MessageSquare, BookOpen, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { X, Sparkles, Music, Star, Search, Globe, ListMusic, MessageSquare, BookOpen, Users } from 'lucide-react';
 import { useStore } from '../../state/store';
 import { getExtendedAlbumDetails } from '../../services/geminiService';
 import { Region, ExtendedAlbumData, UserLog } from '../../types';
 
-const REGION_COLORS: Record<Region, string> = {
-  [Region.NORTH_AMERICA]: '#F472B6',
-  [Region.EUROPE]: '#60A5FA',
-  [Region.ASIA]: '#FBBF24',
-  [Region.LATIN_AMERICA]: '#34D399',
-  [Region.AFRICA]: '#A78BFA'
+// 장르별 색상 (MapCanvas와 동일)
+const GENRE_COLORS: Record<string, string> = {
+  'Rock': '#EF4444', 'Hard Rock': '#DC2626', 'Metal': '#7F1D1D',
+  'Alternative': '#FB923C', 'Indie': '#FDBA74', 'Punk': '#EA580C',
+  'Pop': '#EC4899', 'Dance': '#DB2777',
+  'Electronic': '#A855F7', 'EDM': '#9333EA', 'House': '#7E22CE', 'Techno': '#6B21A8',
+  'Hip Hop': '#EAB308', 'Rap': '#CA8A04', 'R&B': '#84CC16', 'Soul': '#65A30D',
+  'Jazz': '#3B82F6', 'Blues': '#2563EB', 'Funk': '#1D4ED8',
+  'Classical': '#9CA3AF', 'Folk': '#86EFAC', 'Country': '#4ADE80',
+  'World': '#FBBF24', 'Latin': '#F59E0B', 'Reggae': '#14B8A6',
+  'K-Pop': '#F472B6', 'J-Pop': '#D946EF',
+  'Other': '#94A3B8'
 };
 
-type Tab = 'context' | 'tracks' | 'reviews' | 'log';
+const REGION_COLORS: Record<string, string> = {
+  'North America': '#F472B6',
+  'Europe': '#60A5FA',
+  'Asia': '#FBBF24',
+  'Latin America': '#34D399',
+  'South America': '#34D399',
+  'Caribbean': '#34D399',
+  'Oceania': '#FBBF24',
+  'Africa': '#A78BFA'
+};
+
+type Tab = 'context' | 'tracks' | 'credits' | 'reviews' | 'log';
 
 export const DetailPanel: React.FC = () => {
   const { selectedAlbumId, albums, selectAlbum } = useStore();
@@ -21,13 +38,25 @@ export const DetailPanel: React.FC = () => {
   const [details, setDetails] = useState<ExtendedAlbumData | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('context');
-  const [lang, setLang] = useState<'en' | 'ko'>('en');
+  const [lang, setLang] = useState<'en' | 'ko'>(() => {
+    const userLang = navigator.language || 'en';
+    return userLang.startsWith('ko') ? 'ko' : 'en';
+  });
   
   // User Log State
   const [userLog, setUserLog] = useState<UserLog>({ rating: 0, memo: '', updatedAt: '' });
   const [isLogDirty, setIsLogDirty] = useState(false);
 
   const album = albums.find(a => a.id === selectedAlbumId);
+
+  // Handle Research Call
+  const handleResearch = useCallback(async () => {
+    if (!album) return;
+    setLoading(true);
+    const result = await getExtendedAlbumDetails(album);
+    setDetails(result);
+    setLoading(false);
+  }, [album]);
 
   // Load Album & Local Data
   useEffect(() => {
@@ -44,17 +73,11 @@ export const DetailPanel: React.FC = () => {
         setUserLog({ rating: 0, memo: '', updatedAt: '' });
       }
       setIsLogDirty(false);
+      
+      // 자동으로 AI 분석 생성
+      handleResearch();
     }
-  }, [album?.id]);
-
-  // Handle Research Call
-  const handleResearch = async () => {
-    if (!album) return;
-    setLoading(true);
-    const result = await getExtendedAlbumDetails(album);
-    setDetails(result);
-    setLoading(false);
-  };
+  }, [album?.id, handleResearch]);
 
   // Handle User Log Save
   const handleSaveLog = () => {
@@ -97,16 +120,16 @@ export const DetailPanel: React.FC = () => {
         <div className="absolute bottom-5 left-6 z-20 w-[calc(100%-3rem)]">
           <div className="flex items-center gap-2 mb-2">
             <span 
-              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-black shadow-lg"
-              style={{ backgroundColor: REGION_COLORS[album.region] }}
+              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white shadow-lg"
+              style={{ backgroundColor: GENRE_COLORS[album.genres[0]] || GENRE_COLORS['Other'] }}
             >
-              {album.region}
+              {album.genres[0]}
             </span>
             <span className="text-[10px] font-mono text-slate-300 border border-slate-700 px-2 py-0.5 rounded bg-black/40">
               {album.year}
             </span>
              <span className="text-[10px] font-mono text-slate-300 border border-slate-700 px-2 py-0.5 rounded bg-black/40">
-              {album.genres[0]}
+              {album.region}
             </span>
           </div>
           <h2 className="text-3xl font-bold text-white leading-tight mb-1 truncate">{album.title}</h2>
@@ -115,9 +138,10 @@ export const DetailPanel: React.FC = () => {
       </div>
 
       {/* 2. Navigation Tabs */}
-      <div className="flex items-center border-b border-slate-800 px-4">
+      <div className="flex items-center border-b border-slate-800 px-2">
         <TabButton id="context" label="Context" icon={BookOpen} active={activeTab} set={setActiveTab} />
         <TabButton id="tracks" label="Tracks" icon={ListMusic} active={activeTab} set={setActiveTab} />
+        <TabButton id="credits" label="Credits" icon={Users} active={activeTab} set={setActiveTab} />
         <TabButton id="reviews" label="Reviews" icon={Globe} active={activeTab} set={setActiveTab} />
         <TabButton id="log" label="My Log" icon={MessageSquare} active={activeTab} set={setActiveTab} />
       </div>
@@ -161,11 +185,16 @@ export const DetailPanel: React.FC = () => {
                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Key Credits</h3>
                    <div className="flex flex-wrap gap-2">
                       {details.credits.map((credit, i) => (
-                        <span key={i} className="px-3 py-1 bg-slate-800 rounded-full text-xs text-slate-300 border border-slate-700">
+                        <button 
+                          key={i}
+                          onClick={() => setActiveTab('credits')}
+                          className="px-3 py-1 bg-slate-800 rounded-full text-xs text-slate-300 border border-slate-700 hover:border-accent hover:text-white transition-all cursor-pointer"
+                        >
                           {credit}
-                        </span>
+                        </button>
                       ))}
                    </div>
+                   <p className="text-xs text-slate-600 mt-2">💡 Click to see detailed credits</p>
                 </div>
               </>
             )}
@@ -193,6 +222,36 @@ export const DetailPanel: React.FC = () => {
           </div>
         )}
 
+        {/* Tab: Credits */}
+        {activeTab === 'credits' && (
+          <div className="p-6 space-y-4">
+            {!details ? (
+              <EmptyState onAction={handleResearch} label="Fetch Credits Info" />
+            ) : (
+              <div className="space-y-4">
+                {details.creditDetails?.map((credit, i) => (
+                  <div key={i} className="bg-slate-800/30 border border-slate-700/50 p-5 rounded-xl hover:border-slate-600 transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="text-white font-bold text-base">{credit.name}</h4>
+                        <span className="text-accent text-xs font-medium uppercase tracking-wider">{credit.role}</span>
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
+                        <Users size={18} className="text-slate-400" />
+                      </div>
+                    </div>
+                    <p className="text-slate-300 text-sm leading-relaxed">{credit.description}</p>
+                  </div>
+                )) || (
+                  <div className="text-center text-slate-500 py-8">
+                    <p className="text-sm">No detailed credit information available.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Tab: Reviews */}
         {activeTab === 'reviews' && (
           <div className="p-6 space-y-4">
@@ -201,13 +260,19 @@ export const DetailPanel: React.FC = () => {
             ) : (
               details.reviews.map((review, i) => (
                 <div key={i} className="bg-slate-800/30 border border-slate-700/50 p-4 rounded-xl hover:border-slate-600 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex justify-between items-start mb-3">
                     <span className="text-accent text-xs font-bold uppercase">{review.source}</span>
-                    <a href={review.url} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-white">
-                      <Share2 size={14} />
+                    <a 
+                      href={review.url} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-700/50 hover:bg-slate-600 rounded-full text-xs text-slate-300 hover:text-white transition-all border border-slate-600"
+                    >
+                      <Search size={12} />
+                      <span>Search</span>
                     </a>
                   </div>
-                  <p className="text-slate-300 text-sm italic leading-relaxed">"{review.excerpt}"</p>
+                  <p className="text-slate-300 text-sm leading-relaxed">"{review.excerpt}"</p>
                 </div>
               ))
             )}
@@ -236,8 +301,10 @@ export const DetailPanel: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-bold text-slate-400 uppercase tracking-wider block">Personal Memo</label>
+              <label htmlFor="album-memo" className="text-sm font-bold text-slate-400 uppercase tracking-wider block">Personal Memo</label>
               <textarea 
+                id="album-memo"
+                name="memo"
                 className="w-full h-32 bg-black/20 border border-slate-700 rounded-xl p-4 text-sm text-slate-200 focus:ring-1 focus:ring-accent focus:border-accent outline-none resize-none placeholder-slate-600"
                 placeholder="Write your thoughts about this album..."
                 value={userLog.memo}
@@ -276,14 +343,14 @@ export const DetailPanel: React.FC = () => {
 const TabButton = ({ id, label, icon: Icon, active, set }: { id: Tab, label: string, icon: any, active: Tab, set: (t: Tab) => void }) => (
   <button
     onClick={() => set(id)}
-    className={`flex-1 py-4 flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-wider border-b-2 transition-all duration-300 ${
+    className={`flex-1 py-4 flex items-center justify-center gap-1.5 text-[10px] font-medium uppercase tracking-wider border-b-2 transition-all duration-300 ${
       active === id 
         ? 'border-accent text-white bg-white/5' 
         : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-white/5'
     }`}
   >
-    <Icon size={14} />
-    {label}
+    <Icon size={13} />
+    <span className="hidden sm:inline">{label}</span>
   </button>
 );
 

@@ -1,10 +1,5 @@
-export enum Region {
-  NORTH_AMERICA = 'North America',
-  EUROPE = 'Europe',
-  ASIA = 'Asia',
-  LATIN_AMERICA = 'Latin America',
-  AFRICA = 'Africa'
-}
+// Region을 문자열 타입으로 변경 (백엔드와 일치)
+export type Region = 'North America' | 'Europe' | 'Asia' | 'South America' | 'Latin America' | 'Caribbean' | 'Oceania' | 'Africa';
 
 export interface Album {
   id: string;
@@ -14,6 +9,7 @@ export interface Album {
   vibe: number; // 0.0 (Calm) to 1.0 (Energetic)
   popularity: number; // Determines circle size
   region: Region;
+  country?: string; // 국가별 세분화
   coverUrl?: string;
   genres: string[];
 }
@@ -44,11 +40,18 @@ export interface ReviewDigest {
   url: string; // Simulated link
 }
 
+export interface CreditDetail {
+  name: string;
+  role: string;
+  description: string;
+}
+
 export interface ExtendedAlbumData {
   summaryEn: string;
   summaryKo: string;
   tracklist: string[];
   credits: string[];
+  creditDetails: CreditDetail[];
   reviews: ReviewDigest[];
 }
 

@@ -1,22 +1,88 @@
 import React, { useRef, useEffect } from 'react';
-import { select, rollup, scaleLinear, max, brushX } from 'd3';
+import { select, rollup, scaleLinear, max } from 'd3';
 import { useStore } from '../../state/store';
-import { Region, Album } from '../../types';
+import { Album } from '../../types';
 
-const REGION_COLORS: Record<Region, string> = {
-  [Region.NORTH_AMERICA]: '#F472B6', 
-  [Region.EUROPE]: '#60A5FA',        
-  [Region.ASIA]: '#FBBF24',          
-  [Region.LATIN_AMERICA]: '#34D399', 
-  [Region.AFRICA]: '#A78BFA'         
+// 장르별 색상 (주요 장르만 표시)
+const GENRE_COLORS: Record<string, string> = {
+  'Rock': '#EF4444',
+  'Alternative': '#FB923C', 
+  'Pop': '#EC4899',
+  'Electronic': '#A855F7',
+  'Hip Hop': '#EAB308',
+  'R&B': '#84CC16',
+  'Jazz': '#3B82F6',
+  'Folk': '#86EFAC',
+  'K-Pop': '#F472B6',
+  'Other': '#94A3B8'
 };
 
+const MAIN_GENRES = ['Rock', 'Alternative', 'Pop', 'Electronic', 'Hip Hop', 'R&B', 'Jazz', 'Folk', 'K-Pop'];
+
 export const TimelineBar: React.FC = () => {
-  const { yearRange, setYearRange, activeRegions, toggleRegion, albums } = useStore();
+  const { albums, viewportYearRange, setViewport } = useStore();
   const svgRef = useRef<SVGSVGElement>(null);
+  const [selectedYears, setSelectedYears] = React.useState({ 
+    start: viewportYearRange[0], 
+    end: viewportYearRange[1] 
+  });
 
   const minYear = 1960;
   const maxYear = 2024;
+  
+  // 왼쪽 드롭박스 옵션: 1960 ~ 선택된 끝 연도
+  const startYearOptions = React.useMemo(() => {
+    const years = [];
+    for (let year = minYear; year <= selectedYears.end; year++) {
+      years.push(year);
+    }
+    return years;
+  }, [selectedYears.end]);
+
+  // 오른쪽 드롭박스 옵션: 선택된 시작 연도 ~ 2024
+  const endYearOptions = React.useMemo(() => {
+    const years = [];
+    for (let year = selectedYears.start; year <= maxYear; year++) {
+      years.push(year);
+    }
+    return years;
+  }, [selectedYears.start]);
+
+  // 뷰포트 연도 범위가 변경되면 드롭박스도 업데이트
+  React.useEffect(() => {
+    setSelectedYears({
+      start: viewportYearRange[0],
+      end: viewportYearRange[1]
+    });
+  }, [viewportYearRange[0], viewportYearRange[1]]);
+
+  // 시작 연도 변경 (왼쪽 박스)
+  const handleStartYearChange = (year: number) => {
+    // 옵션에 이미 제한되어 있으므로 유효성 검사 불필요
+    setSelectedYears({ start: year, end: selectedYears.end });
+    
+    // 화면 이동 (범위에 따라 줌 레벨 자동 조정)
+    const centerYear = (year + selectedYears.end) / 2;
+    const yearSpan = selectedYears.end - year;
+    const zoomLevel = yearSpan > 30 ? 1.5 : yearSpan > 10 ? 2.5 : 3.5;
+    
+    console.log('📅 Start year changed:', { start: year, end: selectedYears.end, centerYear, zoomLevel, yearSpan });
+    setViewport({ x: centerYear, y: 0.5, k: zoomLevel });
+  };
+
+  // 끝 연도 변경 (오른쪽 박스)
+  const handleEndYearChange = (year: number) => {
+    // 옵션에 이미 제한되어 있으므로 유효성 검사 불필요
+    setSelectedYears({ start: selectedYears.start, end: year });
+    
+    // 화면 이동 (범위에 따라 줌 레벨 자동 조정)
+    const centerYear = (selectedYears.start + year) / 2;
+    const yearSpan = year - selectedYears.start;
+    const zoomLevel = yearSpan > 30 ? 1.5 : yearSpan > 10 ? 2.5 : 3.5;
+    
+    console.log('📅 End year changed:', { start: selectedYears.start, end: year, centerYear, zoomLevel, yearSpan });
+    setViewport({ x: centerYear, y: 0.5, k: zoomLevel });
+  };
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -26,7 +92,7 @@ export const TimelineBar: React.FC = () => {
     if (!container) return;
     
     const { width } = container.getBoundingClientRect();
-    const height = 40;
+    const height = 32;  // 축소: 40 → 32
     svg.selectAll("*").remove();
 
     const padding = 10;
@@ -53,56 +119,104 @@ export const TimelineBar: React.FC = () => {
       .attr("y", d => yScale(d.count))
       .attr("width", Math.max(1, chartWidth / data.length - 1))
       .attr("height", d => height - yScale(d.count))
-      .attr("fill", d => 
-        (d.year >= yearRange[0] && d.year <= yearRange[1]) ? "#6366F1" : "#1E293B"
-      )
-      .attr("rx", 1);
+      .attr("fill", d => {
+        const inViewport = d.year >= viewportYearRange[0] && d.year <= viewportYearRange[1];
+        if (inViewport) return "#6366F1";  // 뷰포트(곧 필터)에 보이는 영역
+        return "#1E293B";  // 보이지 않는 영역
+      })
+      .attr("rx", 1)
+      .style("transition", "fill 0.5s ease");  // 부드러운 색상 전환
 
-    const brush = brushX()
-      .extent([[0, 0], [chartWidth, height]])
-      .on("end", (event) => {
-        if (!event.selection) return;
-        const [x0, x1] = event.selection;
-        const y0 = Math.round(xScale.invert(x0));
-        const y1 = Math.round(xScale.invert(x1));
-        if (y0 !== yearRange[0] || y1 !== yearRange[1]) {
-           setYearRange([y0, y1]);
-        }
-      });
+    // 뷰포트 범위 시각화
+    const viewportOverlay = g.append("g").attr("class", "viewport-indicator");
+    
+    // 왼쪽 어두운 영역
+    viewportOverlay.append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", xScale(viewportYearRange[0]))
+      .attr("height", height)
+      .attr("fill", "rgba(0, 0, 0, 0.6)")
+      .attr("pointer-events", "none");
+    
+    // 오른쪽 어두운 영역
+    viewportOverlay.append("rect")
+      .attr("x", xScale(viewportYearRange[1]))
+      .attr("y", 0)
+      .attr("width", chartWidth - xScale(viewportYearRange[1]))
+      .attr("height", height)
+      .attr("fill", "rgba(0, 0, 0, 0.6)")
+      .attr("pointer-events", "none");
+    
+    // 뷰포트 경계선 (왼쪽)
+    viewportOverlay.append("line")
+      .attr("x1", xScale(viewportYearRange[0]))
+      .attr("y1", 0)
+      .attr("x2", xScale(viewportYearRange[0]))
+      .attr("y2", height)
+      .attr("stroke", "#10B981")
+      .attr("stroke-width", 2)
+      .attr("opacity", 0.8);
+    
+    // 뷰포트 경계선 (오른쪽)
+    viewportOverlay.append("line")
+      .attr("x1", xScale(viewportYearRange[1]))
+      .attr("y1", 0)
+      .attr("x2", xScale(viewportYearRange[1]))
+      .attr("y2", height)
+      .attr("stroke", "#10B981")
+      .attr("stroke-width", 2)
+      .attr("opacity", 0.8);
 
-    const brushG = g.append("g").attr("class", "brush").call(brush);
-    brush.move(brushG, [xScale(yearRange[0]), xScale(yearRange[1])]);
-
-  }, [yearRange, albums, setYearRange]);
+  }, [albums, viewportYearRange]);
 
   return (
-    <div className="w-full space-y-5">
-      {/* Regions Filter */}
+    <div className="w-full space-y-2">
+      {/* 장르 색상 인덱스 (축소) */}
       <div className="flex justify-between items-center px-2">
-        <div className="flex gap-5">
-          {Object.values(Region).map(region => (
-            <button 
-              key={region}
-              onClick={() => toggleRegion(region)}
-              className="flex items-center gap-2 group outline-none"
-            >
+        <div className="flex items-center gap-1.5">
+          <span className="text-[8px] text-slate-600 font-bold uppercase tracking-wider mr-1">Genres:</span>
+          {MAIN_GENRES.slice(0, 6).map(genre => (
+            <div key={genre} className="flex items-center gap-1">
               <div 
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${activeRegions.includes(region) ? 'scale-125' : 'opacity-30'}`}
-                style={{ backgroundColor: REGION_COLORS[region], boxShadow: activeRegions.includes(region) ? `0 0 10px ${REGION_COLORS[region]}` : 'none' }}
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: GENRE_COLORS[genre] }}
               />
-              <span className={`text-[10px] font-bold tracking-widest uppercase transition-colors ${activeRegions.includes(region) ? 'text-slate-200' : 'text-slate-600'}`}>
-                {region}
-              </span>
-            </button>
+              <span className="text-[8px] text-slate-500 font-medium">{genre}</span>
+            </div>
           ))}
         </div>
-        <div className="text-[10px] font-mono font-bold text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
-          {yearRange[0]} — {yearRange[1]}
+        
+        {/* 연도 드롭박스 (동적 옵션) */}
+        <div className="flex items-center gap-2">
+          {/* 왼쪽: 1960 ~ 선택된 끝 연도 */}
+          <select
+            value={selectedYears.start}
+            onChange={(e) => handleStartYearChange(parseInt(e.target.value))}
+            className="w-20 px-2 py-1 text-xs font-mono font-bold text-white bg-panel/80 border border-accent/30 rounded focus:ring-2 focus:ring-accent/50 outline-none cursor-pointer hover:bg-panel transition-colors"
+            title="시작 연도"
+          >
+            {startYearOptions.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+          <span className="text-slate-600 text-xs font-bold">—</span>
+          {/* 오른쪽: 선택된 시작 연도 ~ 2024 */}
+          <select
+            value={selectedYears.end}
+            onChange={(e) => handleEndYearChange(parseInt(e.target.value))}
+            className="w-20 px-2 py-1 text-xs font-mono font-bold text-white bg-panel/80 border border-accent/30 rounded focus:ring-2 focus:ring-accent/50 outline-none cursor-pointer hover:bg-panel transition-colors"
+            title="끝 연도"
+          >
+            {endYearOptions.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Histogram SVG */}
-      <div className="h-10 w-full">
+      {/* Histogram SVG (축소) */}
+      <div className="h-8 w-full">
         <svg ref={svgRef} className="w-full h-full overflow-visible" />
       </div>
     </div>

@@ -88,6 +88,18 @@ async def get_map_points(
             ))
         return APIResponse(data=points)
 
+@app.get("/albums", response_model=APIResponse)
+async def get_all_albums(
+    limit: int = 2000,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db)
+):
+    """모든 앨범 조회 (페이지네이션 지원)"""
+    stmt = select(Album).offset(offset).limit(limit)
+    result = await db.execute(stmt)
+    albums = result.scalars().all()
+    return APIResponse(data=[AlbumResponse.model_validate(a) for a in albums])
+
 @app.get("/search", response_model=APIResponse)
 async def search_albums(q: str, db: AsyncSession = Depends(get_db)):
     stmt = select(Album).where(

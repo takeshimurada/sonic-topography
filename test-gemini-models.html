@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gemini API Model Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        pre { background: #000; padding: 10px; overflow-x: auto; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Gemini API Model Tester</h1>
+    <p>API Key: <input type="text" id="apiKey" placeholder="여기에 API 키 입력" style="width: 400px; padding: 5px;" /></p>
+    
+    <h3>테스트할 모델:</h3>
+    <button onclick="testModel('gemini-1.5-pro')">gemini-1.5-pro</button>
+    <button onclick="testModel('gemini-1.5-flash')">gemini-1.5-flash</button>
+    <button onclick="testModel('gemini-1.5-pro-latest')">gemini-1.5-pro-latest</button>
+    <button onclick="testModel('gemini-1.5-flash-latest')">gemini-1.5-flash-latest</button>
+    <button onclick="testModel('gemini-pro')">gemini-pro (old)</button>
+    
+    <div id="result"></div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from 'https://esm.run/@google/generative-ai';
+        
+        window.testModel = async function(modelName) {
+            const apiKey = document.getElementById('apiKey').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!apiKey) {
+                resultDiv.innerHTML = '<p class="error">❌ API 키를 입력하세요!</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = `<p>Testing model: <strong>${modelName}</strong>...</p>`;
+            
+            try {
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                
+                const result = await model.generateContent('Say hello in JSON format: {"message": "hello"}');
+                const response = await result.response;
+                const text = response.text();
+                
+                resultDiv.innerHTML = `
+                    <p class="success">✅ 모델 <strong>${modelName}</strong> 작동 성공!</p>
+                    <h3>응답:</h3>
+                    <pre>${text}</pre>
+                    <p class="success">👉 이 모델을 사용하세요!</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ 모델 <strong>${modelName}</strong> 실패</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
