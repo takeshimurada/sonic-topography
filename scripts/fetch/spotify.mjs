@@ -22,18 +22,49 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// 타임아웃이 있는 fetch wrapper
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeoutMs}ms: ${url}`);
+    }
+    throw error;
+  }
+}
+
 async function fetchJson(url, options = {}, retry = 0) {
-  const res = await fetch(url, options);
+  console.log(`  🔍 API 호출: ${url.substring(0, 80)}...`);
+  
+  let res;
+  try {
+    res = await fetchWithTimeout(url, options, 30000); // 30초 타임아웃
+  } catch (error) {
+    console.log(`  ⚠️  요청 실패: ${error.message}`);
+    throw error;
+  }
 
   // basic rate limit handling
   if (res.status === 429) {
     const retryAfter = Number(res.headers.get("retry-after") || "1");
+    console.log(`  ⏳ Rate limit - ${retryAfter}초 대기 중...`);
     await sleep((retryAfter + 0.2) * 1000);
     return fetchJson(url, options, retry);
   }
 
   // retry on transient errors
   if (res.status >= 500 && retry < 3) {
+    console.log(`  🔄 서버 에러 (${res.status}) - 재시도 ${retry + 1}/3`);
     await sleep((retry + 1) * 400);
     return fetchJson(url, options, retry + 1);
   }
@@ -43,7 +74,9 @@ async function fetchJson(url, options = {}, retry = 0) {
     throw new Error(`HTTP ${res.status} ${res.statusText} - ${text.slice(0, 300)}`);
   }
 
-  return res.json();
+  const json = await res.json();
+  console.log(`  ✅ 응답 성공`);
+  return json;
 }
 
 async function getAccessToken() {
@@ -159,7 +192,11 @@ function buildQueries() {
 }
 
 async function main() {
+  console.log('\n🎵 Spotify 앨범 수집 시작\n');
+  
+  console.log('🔐 토큰 발급 중...');
   const token = await getAccessToken();
+  console.log('✅ 토큰 발급 완료\n');
 
   const seenAlbumIds = new Set();
   let out = [];
@@ -173,35 +210,52 @@ async function main() {
         const albumId = album.spotify?.albumId || album.albumId?.replace('spotify:album:', '');
         if (albumId) seenAlbumIds.add(albumId);
       });
-      console.log(`📥 Loaded existing ${out.length} albums from ${OUT_FILE}`);
+      console.log(`📥 기존 파일에서 ${out.length}개 앨범 로드\n`);
     } catch (e) {
-      console.warn('⚠️ Failed to load existing file, starting fresh');
+      console.warn('⚠️  기존 파일 로드 실패, 새로 시작\n');
     }
   }
 
   const queries = buildQueries();
 
-  console.log(`Market=${MARKET}, target=${TARGET_ALBUMS}, queries=${queries.length}, existing=${out.length}`);
+  console.log(`📊 수집 설정`);
+  console.log(`   Market: ${MARKET || 'Global'}`);
+  console.log(`   Target: ${TARGET_ALBUMS}개`);
+  console.log(`   Queries: ${queries.length}개`);
+  console.log(`   기존 앨범: ${out.length}개`);
+  console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
   for (let qi = 0; qi < queries.length; qi++) {
     const q = queries[qi];
+    console.log(`\n[쿼리 ${qi + 1}/${queries.length}] "${q}"`);
 
     // 각 쿼리에서 offset을 조금씩만 훑어도 꽤 모임
     // (Spotify search는 offset 최대 1000 제한도 있고 품질이 변동이라, "많은 쿼리 + 얕은 스캔"이 안정적)
     for (let offset = 0; offset <= 400; offset += 50) {
-      if (out.length >= TARGET_ALBUMS) break;
+      if (out.length >= TARGET_ALBUMS) {
+        console.log(`  🎯 목표 달성! (${out.length}개)`);
+        break;
+      }
 
+      console.log(`  📖 offset=${offset} 검색 중...`);
+      
       let json;
       try {
         json = await searchAlbums(token, q, offset);
       } catch (e) {
-        console.warn(`Search failed q="${q}" offset=${offset}: ${e.message}`);
+        console.warn(`  ❌ 검색 실패: ${e.message}`);
         continue;
       }
 
       const items = json?.albums?.items || [];
-      if (items.length === 0) break;
+      console.log(`  📦 검색 결과: ${items.length}개 앨범`);
+      
+      if (items.length === 0) {
+        console.log(`  ⚠️  결과 없음 - 다음 쿼리로`);
+        break;
+      }
 
+      let addedCount = 0;
       for (const album of items) {
         if (out.length >= TARGET_ALBUMS) break;
         if (!album?.id) continue;
@@ -242,11 +296,10 @@ async function main() {
         const norm = normalizeAlbum(album, artist);
         out.push(norm);
         seenAlbumIds.add(album.id);
+        addedCount++;
       }
 
-      console.log(
-        `[${qi + 1}/${queries.length}] q="${q}" offset=${offset} -> total=${out.length}`
-      );
+      console.log(`  ✨ ${addedCount}개 추가 → 총 ${out.length}개 수집됨`);
 
       // polite delay
       await sleep(120);
@@ -256,14 +309,19 @@ async function main() {
   }
 
   fs.writeFileSync(OUT_FILE, JSON.stringify({ generatedAt: new Date().toISOString(), market: MARKET, count: out.length, albums: out }, null, 2), "utf-8");
-  console.log(`\nSaved: ${OUT_FILE}`);
-  console.log(`Count: ${out.length}`);
+  
+  console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`\n✅ 수집 완료!`);
+  console.log(`\n📁 저장 위치: ${OUT_FILE}`);
+  console.log(`📊 총 앨범 수: ${out.length}개`);
 
   // quick sanity checks
   const withGenre = out.filter((a) => a.primaryGenre).length;
   const withYear = out.filter((a) => a.year).length;
-  console.log(`With primaryGenre: ${withGenre}/${out.length}`);
-  console.log(`With year: ${withYear}/${out.length}`);
+  console.log(`\n🎼 데이터 품질:`);
+  console.log(`   장르 있음: ${withGenre}/${out.length} (${Math.round(withGenre/out.length*100)}%)`);
+  console.log(`   연도 있음: ${withYear}/${out.length} (${Math.round(withYear/out.length*100)}%)`);
+  console.log(`\n🎉 Spotify 데이터 수집 성공!\n`);
 }
 
 main().catch((e) => {

@@ -306,6 +306,10 @@ async def collect_albums():
                     genre_family = map_genre_to_family(genre_tags)
                     region_bucket = get_region_from_country(country)
                     
+                    # Cover Art Archive에서 커버 이미지 가져오기
+                    # release-group ID를 사용 (더 빠르고 간단)
+                    cover_url = f"https://coverartarchive.org/release-group/{rg_id}/front-500"
+                    
                     album_data = {
                         "id": f"musicbrainz:rg:{rg_id}",
                         "title": title,
@@ -316,7 +320,7 @@ async def collect_albums():
                         "region_bucket": region_bucket,
                         "country": country,
                         "popularity": 0.75,  # MusicBrainz 데이터는 일반적으로 유명함
-                        "cover_url": None,  # MusicBrainz는 커버 이미지 직접 제공 안 함
+                        "cover_url": cover_url,  # Cover Art Archive
                     }
                     
                     collected_albums.append(album_data)

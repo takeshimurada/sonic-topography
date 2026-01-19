@@ -12,7 +12,7 @@ const easeInOutCubic = (t: number) => {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 };
 
-const MIN_YEAR = 1960;
+const MIN_YEAR = 1950;
 const MAX_YEAR = 2024;
 const DAYS_PER_YEAR = 365;
 const WORLD_WIDTH = 1200;  // 800 → 1200 (50% 확장)
@@ -538,6 +538,26 @@ export const MapCanvas: React.FC = () => {
         }
       }),
       
+      // 1950년 기준선 (시작 기준선, 은은하게)
+      new LineLayer({
+        id: 'baseline-1950',
+        data: [{ year: 1950 }],
+        getSourcePosition: (d: any) => [scales.xScale(d.year), 0, 0],
+        getTargetPosition: (d: any) => [scales.xScale(d.year), WORLD_HEIGHT, 0],
+        getColor: [99, 102, 241, 150], // 보라색, 투명도 낮춤
+        getWidth: 1.5,
+        opacity: gridVisible * 0.8,
+        transitions: {
+          opacity: {
+            duration: 1200,
+            easing: easeInOutCubic
+          }
+        },
+        updateTriggers: {
+          opacity: [gridVisible]
+        }
+      }),
+      
       // 연도 구분선 (세로선, 줌 레벨에 따라 동적) - 10년 단위는 항상 유지
       new LineLayer({
         id: 'year-lines',
@@ -701,25 +721,12 @@ export const MapCanvas: React.FC = () => {
           const rightEdgeX = viewState.target[0] + visibleWorldWidth / 2;
           const regionY = scales.yScale(d.y);
           
-          // 노드 영역 시작점
+          // 노드 영역 시작점 (X=0)
           const nodeStartX = 0;
           
-          let labelX: number;
-          
-          // 노드 시작점(X=0)이 화면에 실제로 보이는지 확인
-          if (leftEdgeX < nodeStartX && rightEdgeX > nodeStartX) {
-            // 노드 시작점이 화면에 보임 (아직 가득 안 참)
-            // → 노드 바로 옆(-30)에 고정 (텍스트는 왼쪽으로 뻗어나감)
-            labelX = -30;
-          } else if (leftEdgeX >= nodeStartX) {
-            // 노드 시작점이 화면 왼쪽 밖 (노드로 가득 찬 상태)
-            // → 화면 안쪽 100px 지점 (텍스트는 왼쪽으로 뻗어나감)
-            labelX = leftEdgeX + 100;
-          } else {
-            // 노드 시작점이 화면 오른쪽 밖 (줌아웃 극한)
-            // → 노드 바로 옆(-30)에 고정
-            labelX = -30;
-          }
+          // 항상 노드 영역 왼쪽 밖에 고정 (-30)
+          // 줌인되면 자연스럽게 화면 안으로 들어옴
+          const labelX = nodeStartX - 30;
           
           return [labelX, regionY, 0];
         },

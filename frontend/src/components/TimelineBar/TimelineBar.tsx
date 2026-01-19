@@ -27,10 +27,10 @@ export const TimelineBar: React.FC = () => {
     end: viewportYearRange[1] 
   });
 
-  const minYear = 1960;
+  const minYear = 1950;
   const maxYear = 2024;
   
-  // 왼쪽 드롭박스 옵션: 1960 ~ 선택된 끝 연도
+  // 왼쪽 드롭박스 옵션: 1950 ~ 선택된 끝 연도
   const startYearOptions = React.useMemo(() => {
     const years = [];
     for (let year = minYear; year <= selectedYears.end; year++) {
@@ -189,7 +189,7 @@ export const TimelineBar: React.FC = () => {
         
         {/* 연도 드롭박스 (동적 옵션) */}
         <div className="flex items-center gap-2">
-          {/* 왼쪽: 1960 ~ 선택된 끝 연도 */}
+          {/* 왼쪽: 1950 ~ 선택된 끝 연도 */}
           <select
             value={selectedYears.start}
             onChange={(e) => handleStartYearChange(parseInt(e.target.value))}
