@@ -7,11 +7,28 @@ from uuid import UUID
 import uuid
 
 from .database import engine, Base, get_db
-from .models import Album, AlbumDetail, UserRating, DevUser, UserLike, UserEvent
+from .models import (
+    AlbumGroup,
+    MapNode,
+    Release,
+    Track,
+    AlbumCredit,
+    TrackCredit,
+    Role,
+    Creator,
+    CulturalAsset,
+    AssetLink,
+    AlbumLink,
+    DevUser,
+    UserLike,
+    UserEvent,
+)
 from .schemas import (
     AlbumResponse, MapPoint, ResearchRequest, APIResponse, RatingCreate,
     DevUserCreateResponse, LikeRequest, LikeResponse, LikeItem, LikesListResponse,
-    EventRequest, EventResponse
+    EventRequest, EventResponse, AlbumGroupDetailResponse, ReleaseResponse, TrackResponse,
+    AlbumCreditResponse, TrackCreditResponse, CreatorResponse, RoleResponse,
+    AssetResponse, AlbumLinkResponse
 )
 from .service_gemini import get_ai_research
 
@@ -31,6 +48,70 @@ async def startup():
     # Simple table creation for MVP
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+# ========================================
+# Helpers
+# ========================================
+
+COUNTRY_TO_REGION = {
+    'United States': 'North America', 'USA': 'North America', 'US': 'North America',
+    'Canada': 'North America', 'Mexico': 'North America',
+    'United Kingdom': 'Europe', 'UK': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe',
+    'Germany': 'Europe', 'France': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe',
+    'Netherlands': 'Europe', 'Belgium': 'Europe', 'Switzerland': 'Europe', 'Austria': 'Europe',
+    'Sweden': 'Europe', 'Norway': 'Europe', 'Denmark': 'Europe', 'Finland': 'Europe',
+    'Poland': 'Europe', 'Portugal': 'Europe', 'Ireland': 'Europe', 'Greece': 'Europe',
+    'Iceland': 'Europe', 'Russia': 'Europe', 'Soviet Union': 'Europe', 'Turkey': 'Europe',
+    'Czech Republic': 'Europe', 'Hungary': 'Europe', 'Romania': 'Europe', 'Bulgaria': 'Europe',
+    'South Korea': 'Asia', 'Korea': 'Asia', 'Japan': 'Asia', 'China': 'Asia', 'Taiwan': 'Asia',
+    'Hong Kong': 'Asia', 'Singapore': 'Asia', 'Thailand': 'Asia', 'Malaysia': 'Asia',
+    'Indonesia': 'Asia', 'Philippines': 'Asia', 'India': 'Asia', 'Vietnam': 'Asia',
+    'Pakistan': 'Asia',
+    'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America',
+    'Colombia': 'Latin America', 'Peru': 'Latin America', 'Venezuela': 'Latin America',
+    'Ecuador': 'Latin America', 'Uruguay': 'South America', 'Paraguay': 'South America',
+    'Cuba': 'Caribbean', 'Jamaica': 'Caribbean', 'Dominican Republic': 'Caribbean',
+    'Puerto Rico': 'Caribbean', 'Trinidad and Tobago': 'Caribbean',
+    'Australia': 'Oceania', 'New Zealand': 'Oceania',
+    'South Africa': 'Africa', 'Nigeria': 'Africa', 'Kenya': 'Africa', 'Egypt': 'Africa',
+    'Morocco': 'Africa', 'Ghana': 'Africa', 'Senegal': 'Africa',
+}
+
+GENRE_VIBE_MAP = {
+    'Rock': 0.85,
+    'Metal': 0.95,
+    'Punk': 0.90,
+    'EDM': 0.90,
+    'Electronic': 0.75,
+    'Hip Hop': 0.80,
+    'Rap': 0.85,
+    'Dance': 0.85,
+    'Pop': 0.60,
+    'K-pop/Asia Pop': 0.65,
+    'Alternative/Indie': 0.55,
+    'R&B': 0.45,
+    'Soul': 0.50,
+    'Folk': 0.40,
+    'Country': 0.45,
+    'Jazz': 0.35,
+    'Blues': 0.40,
+    'Classical': 0.25,
+    'Ambient': 0.20,
+    'Latin': 0.70,
+    'World': 0.55,
+    'Reggae': 0.60,
+    'Unknown': 0.50,
+}
+
+def country_to_region(country: Optional[str]) -> str:
+    if not country:
+        return 'Unknown'
+    return COUNTRY_TO_REGION.get(country, 'Unknown')
+
+def genre_to_vibe(genre: Optional[str]) -> float:
+    if not genre:
+        return 0.5
+    return GENRE_VIBE_MAP.get(genre, 0.5)
 
 # ========================================
 # Step 1: 개발용 인증 Dependency
@@ -73,81 +154,286 @@ async def get_map_points(
     """
     
     if zoom < 2.0:
-        # Grid Aggregation (SQL Group By)
-        # Bucketing: Year (X) by 5 years, Vibe (Y) by 0.1
-        # Note: Math logic depends on DB data distribution
         stmt = text("""
             SELECT 
-                avg(year) as x, 
-                avg(genre_vibe) as y, 
+                avg(ag.original_year) as x, 
+                avg(mn.y) as y, 
                 count(*) as count,
-                mode() WITHIN GROUP (ORDER BY region_bucket) as color
-            FROM albums
-            WHERE year BETWEEN :y1 AND :y2
-            GROUP BY floor(year / 5), floor(genre_vibe * 10)
+                mode() WITHIN GROUP (ORDER BY ag.country_code) as country_code
+            FROM album_groups ag
+            JOIN map_nodes mn ON ag.album_group_id = mn.album_group_id
+            WHERE ag.original_year BETWEEN :y1 AND :y2
+            GROUP BY floor(ag.original_year / 5), floor(mn.y * 10)
         """)
         result = await db.execute(stmt, {"y1": yearFrom, "y2": yearTo})
         points = []
         for row in result:
+            region = country_to_region(row.country_code)
             points.append(MapPoint(
                 x=row.x,
                 y=row.y,
-                r=min(row.count * 0.5 + 2, 20), # scale radius
+                r=min(row.count * 0.5 + 2, 20),
                 count=row.count,
-                color=row.color, # simplified region color mapping
+                color=region,
                 is_cluster=True
             ))
         return APIResponse(data=points)
-    
-    else:
-        # Individual Points
-        stmt = select(Album).where(Album.year >= yearFrom, Album.year <= yearTo).limit(2000)
-        result = await db.execute(stmt)
-        albums = result.scalars().all()
-        points = []
-        for a in albums:
-            points.append(MapPoint(
-                id=a.id,
-                x=a.year,
-                y=a.genre_vibe,
-                r=(a.popularity * 10) + 2,
-                color=a.region_bucket,
-                is_cluster=False,
-                label=a.title
-            ))
-        return APIResponse(data=points)
+
+    stmt = (
+        select(AlbumGroup, MapNode)
+        .join(MapNode, AlbumGroup.album_group_id == MapNode.album_group_id)
+        .where(AlbumGroup.original_year >= yearFrom, AlbumGroup.original_year <= yearTo)
+        .order_by(AlbumGroup.created_at.desc())
+        .limit(5000)
+    )
+    result = await db.execute(stmt)
+    points = []
+    for ag, mn in result.all():
+        region = country_to_region(ag.country_code)
+        points.append(MapPoint(
+            id=ag.album_group_id,
+            x=ag.original_year or 0,
+            y=mn.y,
+            r=mn.size,
+            color=region,
+            is_cluster=False,
+            label=ag.title
+        ))
+    return APIResponse(data=points)
 
 @app.get("/albums", response_model=APIResponse)
 async def get_all_albums(
-    limit: int = 2000,
+    limit: int = 5000,
     offset: int = 0,
     db: AsyncSession = Depends(get_db)
 ):
     """모든 앨범 조회 (페이지네이션 지원)"""
-    stmt = select(Album).offset(offset).limit(limit)
+    stmt = (
+        select(AlbumGroup, MapNode)
+        .join(MapNode, AlbumGroup.album_group_id == MapNode.album_group_id)
+        .order_by(AlbumGroup.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
     result = await db.execute(stmt)
-    albums = result.scalars().all()
-    return APIResponse(data=[AlbumResponse.model_validate(a) for a in albums])
+    albums = []
+    for ag, mn in result.all():
+        albums.append(AlbumResponse(
+            id=ag.album_group_id,
+            title=ag.title,
+            artist_name=ag.primary_artist_display,
+            year=ag.original_year or 0,
+            genre=ag.primary_genre or "Unknown",
+            genre_vibe=genre_to_vibe(ag.primary_genre),
+            region_bucket=country_to_region(ag.country_code),
+            country=ag.country_code,
+            cover_url=ag.cover_url,
+            popularity=ag.popularity or 0.0,
+            created_at=ag.created_at
+        ))
+    return APIResponse(data=albums)
 
 @app.get("/search", response_model=APIResponse)
 async def search_albums(q: str, db: AsyncSession = Depends(get_db)):
-    stmt = select(Album).where(
-        (Album.title.ilike(f"%{q}%")) | (Album.artist_name.ilike(f"%{q}%"))
-    ).limit(20)
+    stmt = (
+        select(AlbumGroup, MapNode)
+        .join(MapNode, AlbumGroup.album_group_id == MapNode.album_group_id)
+        .where(
+            (AlbumGroup.title.ilike(f"%{q}%")) |
+            (AlbumGroup.primary_artist_display.ilike(f"%{q}%"))
+        )
+        .limit(20)
+    )
     result = await db.execute(stmt)
-    albums = result.scalars().all()
-    return APIResponse(data=[AlbumResponse.model_validate(a) for a in albums])
+    albums = []
+    for ag, mn in result.all():
+        albums.append(AlbumResponse(
+            id=ag.album_group_id,
+            title=ag.title,
+            artist_name=ag.primary_artist_display,
+            year=ag.original_year or 0,
+            genre=ag.primary_genre or "Unknown",
+            genre_vibe=genre_to_vibe(ag.primary_genre),
+            region_bucket=country_to_region(ag.country_code),
+            country=ag.country_code,
+            cover_url=ag.cover_url,
+            popularity=ag.popularity or 0.0,
+            created_at=ag.created_at
+        ))
+    return APIResponse(data=albums)
 
 @app.get("/albums/{album_id}", response_model=APIResponse)
 async def get_album_detail(album_id: str, db: AsyncSession = Depends(get_db)):
-    stmt = select(Album).where(Album.id == album_id)
+    stmt = (
+        select(AlbumGroup, MapNode)
+        .join(MapNode, AlbumGroup.album_group_id == MapNode.album_group_id)
+        .where(AlbumGroup.album_group_id == album_id)
+    )
     result = await db.execute(stmt)
-    album = result.scalars().first()
-    if not album:
+    row = result.first()
+    if not row:
         raise HTTPException(status_code=404, detail="Album not found")
-    
-    # Lazy load details if needed, or join in query
-    return APIResponse(data=AlbumResponse.model_validate(album))
+    ag, mn = row
+    return APIResponse(data=AlbumResponse(
+        id=ag.album_group_id,
+        title=ag.title,
+        artist_name=ag.primary_artist_display,
+        year=ag.original_year or 0,
+        genre=ag.primary_genre or "Unknown",
+        genre_vibe=genre_to_vibe(ag.primary_genre),
+        region_bucket=country_to_region(ag.country_code),
+        country=ag.country_code,
+        cover_url=ag.cover_url,
+        popularity=ag.popularity or 0.0,
+        created_at=ag.created_at
+    ))
+
+@app.get("/album-groups/{album_id}/detail", response_model=APIResponse)
+async def get_album_group_detail(album_id: str, db: AsyncSession = Depends(get_db)):
+    stmt = (
+        select(AlbumGroup, MapNode)
+        .join(MapNode, AlbumGroup.album_group_id == MapNode.album_group_id)
+        .where(AlbumGroup.album_group_id == album_id)
+    )
+    result = await db.execute(stmt)
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Album not found")
+    ag, mn = row
+
+    album = AlbumResponse(
+        id=ag.album_group_id,
+        title=ag.title,
+        artist_name=ag.primary_artist_display,
+        year=ag.original_year or 0,
+        genre=ag.primary_genre or "Unknown",
+        genre_vibe=genre_to_vibe(ag.primary_genre),
+        region_bucket=country_to_region(ag.country_code),
+        country=ag.country_code,
+        cover_url=ag.cover_url,
+        popularity=ag.popularity or 0.0,
+        created_at=ag.created_at
+    )
+
+    releases_res = await db.execute(select(Release).where(Release.album_group_id == album_id))
+    releases = [
+        ReleaseResponse(
+            release_id=r.release_id,
+            release_title=r.release_title,
+            release_date=r.release_date,
+            country_code=r.country_code,
+            edition=r.edition,
+            cover_url=r.cover_url
+        )
+        for r in releases_res.scalars().all()
+    ]
+
+    tracks = []
+    if releases:
+        release_ids = [r.release_id for r in releases]
+        tracks_res = await db.execute(select(Track).where(Track.release_id.in_(release_ids)))
+        tracks = [
+            TrackResponse(
+                track_id=t.track_id,
+                disc_no=t.disc_no,
+                track_no=t.track_no,
+                title=t.title,
+                duration_ms=t.duration_ms,
+                isrc=t.isrc
+            )
+            for t in tracks_res.scalars().all()
+        ]
+
+    album_credits_res = await db.execute(
+        select(AlbumCredit, Creator, Role)
+        .join(Creator, AlbumCredit.creator_id == Creator.creator_id)
+        .join(Role, AlbumCredit.role_id == Role.role_id)
+        .where(AlbumCredit.album_group_id == album_id)
+    )
+    album_credits = [
+        AlbumCreditResponse(
+            creator=CreatorResponse(
+                creator_id=creator.creator_id,
+                display_name=creator.display_name,
+                image_url=creator.image_url
+            ),
+            role=RoleResponse(
+                role_id=role.role_id,
+                role_name=role.role_name,
+                role_group=role.role_group
+            ),
+            credit_detail=credit.credit_detail,
+            credit_order=credit.credit_order
+        )
+        for credit, creator, role in album_credits_res.all()
+    ]
+
+    track_credits = []
+    if tracks:
+        track_ids = [t.track_id for t in tracks]
+        track_credits_res = await db.execute(
+            select(TrackCredit, Creator, Role)
+            .join(Creator, TrackCredit.creator_id == Creator.creator_id)
+            .join(Role, TrackCredit.role_id == Role.role_id)
+            .where(TrackCredit.track_id.in_(track_ids))
+        )
+        track_credits = [
+            TrackCreditResponse(
+                creator=CreatorResponse(
+                    creator_id=creator.creator_id,
+                    display_name=creator.display_name,
+                    image_url=creator.image_url
+                ),
+                role=RoleResponse(
+                    role_id=role.role_id,
+                    role_name=role.role_name,
+                    role_group=role.role_group
+                ),
+                credit_detail=credit.credit_detail,
+                credit_order=credit.credit_order
+            )
+            for credit, creator, role in track_credits_res.all()
+        ]
+
+    assets_res = await db.execute(
+        select(CulturalAsset)
+        .join(AssetLink, CulturalAsset.asset_id == AssetLink.asset_id)
+        .where(AssetLink.entity_type == "album_group")
+        .where(AssetLink.entity_id == album_id)
+    )
+    assets = [
+        AssetResponse(
+            asset_id=a.asset_id,
+            asset_type=a.asset_type,
+            title=a.title,
+            url=a.url,
+            summary=a.summary,
+            published_at=a.published_at
+        )
+        for a in assets_res.scalars().all()
+    ]
+
+    links_res = await db.execute(select(AlbumLink).where(AlbumLink.album_group_id == album_id))
+    album_links = [
+        AlbumLinkResponse(
+            provider=l.provider,
+            url=l.url,
+            external_id=l.external_id,
+            is_primary=l.is_primary
+        )
+        for l in links_res.scalars().all()
+    ]
+
+    detail = AlbumGroupDetailResponse(
+        album=album,
+        releases=releases,
+        tracks=tracks,
+        album_credits=album_credits,
+        track_credits=track_credits,
+        assets=assets,
+        album_links=album_links
+    )
+    return APIResponse(data=detail)
 
 @app.post("/research", response_model=APIResponse)
 async def create_research(req: ResearchRequest, db: AsyncSession = Depends(get_db)):
@@ -162,7 +448,7 @@ async def get_me():
 
 @app.post("/me/ratings")
 async def rate_album(rating: RatingCreate, db: AsyncSession = Depends(get_db)):
-    # Upsert rating logic here
+    # Deprecated endpoint: kept for backward compatibility
     return {"status": "saved"}
 
 # ========================================
@@ -185,11 +471,14 @@ async def create_like(
     db: AsyncSession = Depends(get_db)
 ):
     """좋아요 추가 (멱등 처리)"""
+    entity_id = like.entity_id
+    if like.entity_type == "artist" and ":" not in entity_id:
+        entity_id = f"spotify:artist:{entity_id}"
     # 이미 있는지 확인
     stmt = select(UserLike).where(
         UserLike.user_id == current_user.id,
         UserLike.entity_type == like.entity_type,
-        UserLike.entity_id == like.entity_id
+        UserLike.entity_id == entity_id
     )
     result = await db.execute(stmt)
     existing = result.scalars().first()
@@ -202,7 +491,7 @@ async def create_like(
     new_like = UserLike(
         user_id=current_user.id,
         entity_type=like.entity_type,
-        entity_id=like.entity_id
+        entity_id=entity_id
     )
     db.add(new_like)
     await db.commit()
@@ -215,10 +504,13 @@ async def delete_like(
     db: AsyncSession = Depends(get_db)
 ):
     """좋아요 삭제 (멱등 처리)"""
+    entity_id = like.entity_id
+    if like.entity_type == "artist" and ":" not in entity_id:
+        entity_id = f"spotify:artist:{entity_id}"
     stmt = delete(UserLike).where(
         UserLike.user_id == current_user.id,
         UserLike.entity_type == like.entity_type,
-        UserLike.entity_id == like.entity_id
+        UserLike.entity_id == entity_id
     )
     await db.execute(stmt)
     await db.commit()

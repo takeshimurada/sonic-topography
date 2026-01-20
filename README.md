@@ -10,32 +10,63 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)](https://www.postgresql.org/)
 [![Deck.gl](https://img.shields.io/badge/Deck.gl-8.9-ff69b4)](https://deck.gl/)
 
-**Version 3.0.0** | 2026-01-20
+**Version 3.5.0** | 2026-01-20
 
 </div>
 
 ---
 
-## 📝 Changelog (Version 3.0.0)
+## 📝 Changelog
 
-### 🎨 앨범 커버 이미지 시스템
+### Version 3.5.0 (2026-01-20)
+
+#### 🗄️ 데이터베이스 스키마 대규모 리팩터링
+- ✅ **Target Schema 마이그레이션 완료**: `albums` → `album_groups`, `artists` → `creators` 통합
+- ✅ **역할 정규화**: `roles` 테이블 기반 크레딧 시스템 (`album_credits`, `track_credits`)
+- ✅ **네임스페이스 ID 전략**: `spotify:album:<id>`, `spotify:artist:<id>`, `local:creator:<uuid>` 형식
+- ✅ **트랙 레벨 크레딧**: 각 트랙별 프로듀서/작곡가/작사가 분리 저장
+- ✅ **마이그레이션 스크립트**: 기존 데이터 자동 이관 (`scripts/db/migrate_to_target_schema.py`)
+- ✅ **스키마 검증 도구**: 데이터 무결성 확인 (`scripts/db/validate_target_schema.py`)
+
+#### 🎤 메타데이터 임포트 시스템
+- ✅ **아티스트 정보**: Spotify API 기반 `creators` + `creator_spotify_profile` 임포트
+- ✅ **협업 관계**: 메인/피처링 아티스트 → `album_credits` 자동 매핑
+- ✅ **크레딧 정보**: MusicBrainz 기반 프로듀서/엔지니어/작사가 정보 수집 및 임포트
+- ✅ **역할 시드**: 14개 기본 역할 자동 생성 (`scripts/db/seed_roles.py`)
+- ✅ **배치 임포트**: 대용량 데이터 효율적 처리 (1000+ 앨범, 600+ 아티스트)
+
+#### 📊 Spotify 데이터 통합
+- ✅ **1000개 앨범 임포트**: `albums_spotify_v3.json` → `album_groups` + `map_nodes` + `releases`
+- ✅ **API 정렬 개선**: 최신 데이터 우선 표시 (`ORDER BY created_at DESC`)
+- ✅ **데이터 분포**: 1950s-2020s 연대별 앨범 분포 (1970s 중심)
+
+#### 🔧 개발 도구 개선
+- ✅ **메타데이터 파이프라인**: `npm run fetch:metadata` → `npm run metadata:import` 원클릭 실행
+- ✅ **DB 임포트 스크립트**: `import_album_groups.py`, `import_metadata.py` 분리
+- ✅ **에러 처리 강화**: FK 제약 조건 자동 처리, 누락 데이터 스킵
+
+---
+
+### Version 3.0.0 (이전)
+
+#### 🎨 앨범 커버 이미지 시스템
 - ✅ MusicBrainz 앨범에 Cover Art Archive 통합
 - ✅ 기존 DB 앨범 커버 자동 업데이트 스크립트 (`scripts/db/update_covers.py`)
 - ✅ 앨범 커버 통계 및 관리 도구
 
-### 🗺️ UI/UX 개선
+#### 🗺️ UI/UX 개선
 - ✅ X축 연도 범위 확장: 1960 → **1950년부터 시작**
 - ✅ 1950년 기준선 추가 (은은한 보라색 라인)
 - ✅ 지역 레이블 위치 최적화 (노드 영역 밖에서 시작)
 - ✅ 타임슬라이더 1950-2024 범위로 확장
 
-### 📦 데이터 파이프라인
+#### 📦 데이터 파이프라인
 - ✅ MusicBrainz 데이터 수집 안정화
 - ✅ Cover Art Archive API 통합
 - ✅ DB 백업/복원 시스템 구축
 - ✅ 초기 셋업 자동화 스크립트
 
-### 🔧 개발 경험 개선
+#### 🔧 개발 경험 개선
 - ✅ Docker 볼륨 영구 저장 가이드
 - ✅ 프로젝트 재구조화 완료 (frontend/, backend/, scripts/)
 - ✅ 명확한 Quick Start 가이드
@@ -228,28 +259,31 @@ External APIs:
 
 ## 🗄️ 데이터베이스 스키마
 
-### 1. `albums` - 앨범 메타데이터
+> ✅ **Version 3.5.0**: Target Schema 마이그레이션 완료  
+> `album_groups`, `creators`, `roles`, `album_credits`, `track_credits` 기반으로 동작합니다.  
+> 자세한 구조는 [`TARGET_SCHEMA.md`](./TARGET_SCHEMA.md)를 참고하세요.
+
+### 핵심 테이블 구조
+
+#### 1. `album_groups` - 앨범 그룹 (기존 `albums` 대체)
 
 ```sql
-CREATE TABLE albums (
-    id VARCHAR PRIMARY KEY,              -- Spotify Album ID
-    title VARCHAR NOT NULL,              -- 앨범 제목
-    artist_name VARCHAR NOT NULL,        -- 아티스트명
-    year INTEGER NOT NULL,               -- 발매 연도
-    genre VARCHAR,                       -- 장르 (genreFamily)
-    genre_vibe FLOAT NOT NULL,           -- 장르 분위기 (0.0-1.0, 현재 미사용)
-    region_bucket VARCHAR NOT NULL,      -- 지역 (8개 대륙)
-    country VARCHAR,                     -- 국가 (세분화, nullable)
-    popularity FLOAT DEFAULT 0.0,        -- 인기도 (Spotify)
-    cover_url VARCHAR,                   -- 앨범 커버 URL
-    created_at TIMESTAMP DEFAULT NOW()
+CREATE TABLE album_groups (
+    album_group_id VARCHAR PRIMARY KEY,  -- spotify:album:<id> 또는 local:album:<uuid>
+    title VARCHAR NOT NULL,
+    primary_artist_display VARCHAR NOT NULL,
+    original_year INTEGER,
+    country_code VARCHAR,
+    primary_genre VARCHAR,
+    popularity FLOAT DEFAULT 0.0,
+    cover_url VARCHAR,
+    is_anchor BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_albums_title ON albums(title);
-CREATE INDEX idx_albums_artist ON albums(artist_name);
-CREATE INDEX idx_albums_year ON albums(year);
-CREATE INDEX idx_albums_genre_vibe ON albums(genre_vibe);
-CREATE INDEX idx_albums_region ON albums(region_bucket);
+CREATE INDEX idx_album_groups_title ON album_groups(title);
+CREATE INDEX idx_album_groups_year ON album_groups(original_year);
 ```
 
 **예시 데이터:**
@@ -268,33 +302,70 @@ CREATE INDEX idx_albums_region ON albums(region_bucket);
 }
 ```
 
-### 2. `album_details` - 앨범 상세 정보 (AI 생성)
+#### 2. `creators` - 크리에이터 통합 (아티스트/프로듀서/작사가 등)
 
 ```sql
-CREATE TABLE album_details (
-    album_id VARCHAR PRIMARY KEY REFERENCES albums(id),
-    tracklist JSON DEFAULT '[]',         -- 트랙 리스트
-    credits JSON DEFAULT '[]',           -- 크레딧 (간단)
-    external_links JSON DEFAULT '[]'     -- 외부 링크
+CREATE TABLE creators (
+    creator_id VARCHAR PRIMARY KEY,      -- spotify:artist:<id> 또는 local:creator:<uuid>
+    display_name VARCHAR NOT NULL,
+    bio TEXT,
+    image_url VARCHAR,
+    kind VARCHAR NOT NULL,               -- 'person', 'group', 'label'
+    primary_role_tag VARCHAR,            -- 'artist', 'producer', etc.
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE creator_spotify_profile (
+    creator_id VARCHAR PRIMARY KEY REFERENCES creators(creator_id),
+    genres JSON DEFAULT '[]',
+    popularity INTEGER,
+    followers BIGINT,
+    spotify_url TEXT
 );
 ```
 
-**예시 데이터:**
-```json
-{
-  "album_id": "spotify:album:4LH4d3cOWNNsVw41Gqt2kv",
-  "tracklist": ["Speak to Me", "Breathe", "On the Run", "Time", ...],
-  "credits": ["Producer: Pink Floyd", "Engineer: Alan Parsons"],
-  "external_links": []
-}
+#### 3. `roles` - 역할 정규화 테이블
+```sql
+CREATE TABLE roles (
+    role_id VARCHAR PRIMARY KEY,         -- local:role:<uuid>
+    role_name VARCHAR UNIQUE NOT NULL,   -- 'Primary Artist', 'Producer', 'Engineer', etc.
+    role_group VARCHAR NOT NULL,         -- 'artist', 'production', 'engineering', etc.
+    importance_rank INTEGER DEFAULT 100
+);
 ```
 
-### 3. `ai_research` - AI 생성 리서치 캐시
+#### 4. `album_credits` - 앨범 레벨 크레딧
+```sql
+CREATE TABLE album_credits (
+    album_group_id VARCHAR REFERENCES album_groups(album_group_id),
+    creator_id VARCHAR REFERENCES creators(creator_id),
+    role_id VARCHAR REFERENCES roles(role_id),
+    credit_detail TEXT,
+    credit_order SMALLINT,
+    source_confidence SMALLINT DEFAULT 50,
+    PRIMARY KEY (album_group_id, creator_id, role_id)
+);
+```
+
+#### 5. `track_credits` - 트랙 레벨 크레딧
+```sql
+CREATE TABLE track_credits (
+    track_id VARCHAR REFERENCES tracks(track_id),
+    creator_id VARCHAR REFERENCES creators(creator_id),
+    role_id VARCHAR REFERENCES roles(role_id),
+    credit_detail TEXT,
+    credit_order SMALLINT,
+    PRIMARY KEY (track_id, creator_id, role_id)
+);
+```
+
+### 6. `ai_research` - AI 생성 리서치 캐시
 
 ```sql
 CREATE TABLE ai_research (
     id SERIAL PRIMARY KEY,
-    album_id VARCHAR REFERENCES albums(id),
+    album_group_id VARCHAR REFERENCES album_groups(album_group_id),
     lang VARCHAR NOT NULL,               -- 'en' or 'ko'
     summary_md TEXT,                     -- 마크다운 요약
     sources JSON,                        -- 출처 정보
@@ -306,7 +377,7 @@ CREATE TABLE ai_research (
 CREATE INDEX idx_ai_research_cache ON ai_research(cache_key);
 ```
 
-### 4. `dev_users` - 개발용 유저 (Step 1 MVP)
+### 7. `dev_users` - 개발용 유저 (Step 1 MVP)
 
 ```sql
 CREATE TABLE dev_users (
@@ -322,7 +393,7 @@ CREATE TABLE dev_users (
 - 프론트엔드 localStorage에 저장
 - 향후 Google OAuth로 전환 예정
 
-### 5. `user_likes` - 사용자 좋아요
+### 8. `user_likes` - 사용자 좋아요
 
 ```sql
 CREATE TABLE user_likes (
@@ -350,7 +421,7 @@ CREATE INDEX idx_user_likes_user_entity ON user_likes(user_id, entity_type);
 }
 ```
 
-### 6. `user_events` - 사용자 이벤트 로그
+### 9. `user_events` - 사용자 이벤트 로그
 
 ```sql
 CREATE TABLE user_events (
@@ -380,7 +451,7 @@ CREATE INDEX idx_user_events_type ON user_events(event_type);
 }
 ```
 
-### 7. `users` - 정식 유저 (향후 구현)
+### 10. `users` - 정식 유저 (향후 구현)
 
 ```sql
 CREATE TABLE users (
@@ -392,7 +463,7 @@ CREATE TABLE users (
 );
 ```
 
-### 8. `user_ratings` - 사용자 평점 (향후 구현)
+### 11. `user_ratings` - 사용자 평점 (향후 구현)
 
 ```sql
 CREATE TABLE user_ratings (

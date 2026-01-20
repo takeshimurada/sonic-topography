@@ -4,7 +4,7 @@ from google import genai
 from google.genai import types
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from .models import AiResearch, Album
+from .models import AiResearch, AlbumGroup
 import redis.asyncio as redis
 
 API_KEY = os.getenv("API_KEY")
@@ -37,7 +37,7 @@ async def get_ai_research(db: AsyncSession, album_id: str, lang: str = 'en'):
         raise Exception("API_KEY not configured")
 
     # Fetch Album Context
-    album_res = await db.execute(select(Album).where(Album.id == album_id))
+    album_res = await db.execute(select(AlbumGroup).where(AlbumGroup.album_group_id == album_id))
     album = album_res.scalars().first()
     if not album:
         raise Exception("Album not found")
@@ -45,7 +45,7 @@ async def get_ai_research(db: AsyncSession, album_id: str, lang: str = 'en'):
     client = genai.Client(api_key=API_KEY)
     
     prompt = f"""
-    Analyze the album '{album.title}' by {album.artist_name} ({album.year}).
+    Analyze the album '{album.title}' by {album.primary_artist_display} ({album.original_year}).
     
     Provide a response in JSON format adhering to this schema:
     {{

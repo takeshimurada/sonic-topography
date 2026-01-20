@@ -1,24 +1,12 @@
 {
-  "name": "sonic-topography",
+  "name": "sonic-topography-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "fetch:spotify": "node scripts/fetch/spotify.mjs",
-    "fetch:playlists": "node scripts/fetch/playlists.mjs",
-    "pipeline:normalize": "node scripts/pipeline/normalize.mjs",
-    "pipeline:validate": "node scripts/pipeline/validate.mjs",
-    "pipeline:enrich-genre": "node scripts/pipeline/enrich_genre.mjs",
-    "pipeline:enrich-country": "node scripts/pipeline/enrich_country.mjs",
-    "pipeline:report": "node scripts/pipeline/report_country.mjs",
-    "pipeline:process": "npm run pipeline:normalize && npm run pipeline:enrich-genre && npm run pipeline:enrich-country",
-    "pipeline:import": "docker cp out/albums_spotify_v3.json sonic_backend:/out/albums_spotify_v3.json && docker exec sonic_backend python scripts/import_albums_v3.py",
-    "pipeline:all": "npm run pipeline:process && npm run pipeline:import",
-    "db:seed": "docker exec sonic_backend python scripts/seed_albums.py",
-    "db:classics": "docker exec sonic_backend python scripts/insert_classic_albums.py"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@deck.gl/core": "8.9.35",

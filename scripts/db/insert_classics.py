@@ -9,7 +9,8 @@ from sqlalchemy import select
 import sys
 sys.path.append("/app")
 
-from app.models import Album
+from app.models import AlbumGroup, MapNode, Release
+import uuid
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://sonic:sonic_password@db:5432/sonic_db")
 
@@ -356,7 +357,7 @@ async def insert_classic_albums():
     
     async with async_session_maker() as session:
         # 기존 앨범 개수 확인
-        result = await session.execute(select(Album))
+        result = await session.execute(select(AlbumGroup))
         existing = result.scalars().all()
         print(f"📊 Current albums in DB: {len(existing)}")
         
@@ -367,7 +368,7 @@ async def insert_classic_albums():
         for album_data in CLASSIC_ALBUMS:
             # 이미 존재하는지 확인
             result = await session.execute(
-                select(Album).where(Album.id == album_data["id"])
+                select(AlbumGroup).where(AlbumGroup.album_group_id == album_data["id"])
             )
             existing_album = result.scalar_one_or_none()
             
@@ -380,8 +381,29 @@ async def insert_classic_albums():
             album_data["region_bucket"] = get_region_from_country(album_data["country"])
             
             # 새 앨범 생성
-            new_album = Album(**album_data)
-            session.add(new_album)
+            album_id = album_data["id"]
+            new_album = AlbumGroup(
+                album_group_id=album_id,
+                title=album_data["title"],
+                primary_artist_display=album_data["artist_name"],
+                original_year=album_data["year"],
+                primary_genre=album_data["genre"],
+                country_code=album_data.get("country"),
+                popularity=album_data.get("popularity", 0.0),
+                cover_url=album_data.get("cover_url")
+            )
+            node = MapNode(
+                album_group_id=album_id,
+                x=album_data["year"],
+                y=album_data.get("genre_vibe", 0.5),
+                size=(album_data.get("popularity", 0.0) * 10) + 2
+            )
+            release = Release(
+                release_id=f"local:release:{uuid.uuid4()}",
+                album_group_id=album_id,
+                release_title=album_data["title"]
+            )
+            session.add_all([new_album, node, release])
             inserted_count += 1
             
             print(f"✅ Inserted: {album_data['year']} - {album_data['artist_name']} - {album_data['title']} ({album_data['country']})")
@@ -395,7 +417,7 @@ async def insert_classic_albums():
         print(f"   ⏭️  Skipped: {skipped_count} albums")
         
         # 최종 통계
-        result = await session.execute(select(Album))
+        result = await session.execute(select(AlbumGroup))
         all_albums = result.scalars().all()
         print(f"   📊 Total albums in DB: {len(all_albums)}")
         

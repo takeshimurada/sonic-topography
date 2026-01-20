@@ -16,7 +16,7 @@ from sqlalchemy import select, update
 
 # Docker 컨테이너 내부에서는 /app이 루트
 sys.path.insert(0, '/app')
-from app.models import Album
+from app.models import AlbumGroup
 
 # DB 연결
 DATABASE_URL = os.getenv(
@@ -34,9 +34,9 @@ async def update_musicbrainz_covers():
     
     async with async_session() as session:
         # MusicBrainz 앨범들 조회 (커버가 없는 것들)
-        stmt = select(Album).where(
-            Album.id.like('musicbrainz:rg:%'),
-            (Album.cover_url == None) | (Album.cover_url.like('%picsum.photos%'))
+        stmt = select(AlbumGroup).where(
+            AlbumGroup.album_group_id.like('musicbrainz:release-group:%'),
+            (AlbumGroup.cover_url == None) | (AlbumGroup.cover_url.like('%picsum.photos%'))
         )
         result = await session.execute(stmt)
         albums = result.scalars().all()
@@ -46,8 +46,8 @@ async def update_musicbrainz_covers():
         updated_count = 0
         for album in albums:
             # MusicBrainz Release Group ID 추출
-            # 예: "musicbrainz:rg:abc123" -> "abc123"
-            match = re.match(r'musicbrainz:rg:(.+)', album.id)
+            # 예: "musicbrainz:release-group:abc123" -> "abc123"
+            match = re.match(r'musicbrainz:release-group:(.+)', album.album_group_id)
             if match:
                 rg_id = match.group(1)
                 cover_url = f"https://coverartarchive.org/release-group/{rg_id}/front-500"
@@ -71,9 +71,9 @@ async def update_lastfm_covers():
     
     async with async_session() as session:
         # Last.fm 앨범들 조회 (커버가 없는 것들)
-        stmt = select(Album).where(
-            Album.id.like('lastfm:%'),
-            (Album.cover_url == None) | (Album.cover_url.like('%picsum.photos%'))
+        stmt = select(AlbumGroup).where(
+            AlbumGroup.album_group_id.like('lastfm:%'),
+            (AlbumGroup.cover_url == None) | (AlbumGroup.cover_url.like('%picsum.photos%'))
         )
         result = await session.execute(stmt)
         albums = result.scalars().all()
@@ -94,7 +94,7 @@ async def update_dummy_covers():
     print("\n📊 Checking for dummy covers (picsum.photos)...")
     
     async with async_session() as session:
-        stmt = select(Album).where(Album.cover_url.like('%picsum.photos%'))
+        stmt = select(AlbumGroup).where(AlbumGroup.cover_url.like('%picsum.photos%'))
         result = await session.execute(stmt)
         albums = result.scalars().all()
         
@@ -116,37 +116,37 @@ async def show_cover_stats():
     
     async with async_session() as session:
         # 전체 앨범 수
-        stmt = select(Album)
+        stmt = select(AlbumGroup)
         result = await session.execute(stmt)
         total = len(result.scalars().all())
         
         # 커버가 있는 앨범
-        stmt = select(Album).where(Album.cover_url != None, Album.cover_url != '')
+        stmt = select(AlbumGroup).where(AlbumGroup.cover_url != None, AlbumGroup.cover_url != '')
         result = await session.execute(stmt)
         with_covers = len(result.scalars().all())
         
         # 커버가 없는 앨범
-        stmt = select(Album).where((Album.cover_url == None) | (Album.cover_url == ''))
+        stmt = select(AlbumGroup).where((AlbumGroup.cover_url == None) | (AlbumGroup.cover_url == ''))
         result = await session.execute(stmt)
         without_covers = len(result.scalars().all())
         
         # 더미 이미지
-        stmt = select(Album).where(Album.cover_url.like('%picsum.photos%'))
+        stmt = select(AlbumGroup).where(AlbumGroup.cover_url.like('%picsum.photos%'))
         result = await session.execute(stmt)
         dummy_covers = len(result.scalars().all())
         
         # MusicBrainz 커버
-        stmt = select(Album).where(
-            Album.id.like('musicbrainz:%'),
-            Album.cover_url.like('%coverartarchive.org%')
+        stmt = select(AlbumGroup).where(
+            AlbumGroup.album_group_id.like('musicbrainz:%'),
+            AlbumGroup.cover_url.like('%coverartarchive.org%')
         )
         result = await session.execute(stmt)
         mb_covers = len(result.scalars().all())
         
         # Spotify 커버
-        stmt = select(Album).where(
-            Album.id.like('spotify:%'),
-            Album.cover_url != None
+        stmt = select(AlbumGroup).where(
+            AlbumGroup.album_group_id.like('spotify:%'),
+            AlbumGroup.cover_url != None
         )
         result = await session.execute(stmt)
         spotify_covers = len(result.scalars().all())

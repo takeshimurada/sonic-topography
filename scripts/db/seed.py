@@ -11,7 +11,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal, engine, Base
-from app.models import Album
+from app.models import AlbumGroup, MapNode, Release
+import uuid
 import random
 
 # 실제 음악 역사의 유명 앨범 데이터
@@ -225,23 +226,36 @@ async def create_mock_albums():
     
     async with AsyncSessionLocal() as session:
         albums = []
+        nodes = []
+        releases = []
         
         # 기본 앨범 추가
         for idx, (artist, title, year, genre, vibe, region, country, popularity) in enumerate(ALBUMS_DATA):
             album_id = f"album_{idx+1:04d}"
-            album = Album(
-                id=album_id,
+            album = AlbumGroup(
+                album_group_id=album_id,
                 title=title,
-                artist_name=artist,
-                year=year,
-                genre=genre,
-                genre_vibe=vibe,
-                region_bucket=region,
-                country=country,
+                primary_artist_display=artist,
+                original_year=year,
+                primary_genre=genre,
+                country_code=country,
                 popularity=popularity,
                 cover_url=f"https://picsum.photos/300/300?random={idx+1}"
             )
+            node = MapNode(
+                album_group_id=album_id,
+                x=year,
+                y=vibe,
+                size=(popularity * 10) + 2
+            )
+            release = Release(
+                release_id=f"local:release:{uuid.uuid4()}",
+                album_group_id=album_id,
+                release_title=title
+            )
             albums.append(album)
+            nodes.append(node)
+            releases.append(release)
         
         # 추가 앨범 생성 (목표 1000개까지)
         current_idx = len(ALBUMS_DATA)
@@ -254,19 +268,54 @@ async def create_mock_albums():
                 popularity = random.uniform(0.6, 0.95)
                 
                 album_id = f"album_{current_idx+1:04d}"
-                album = Album(
-                    id=album_id,
+                album = AlbumGroup(
+                    album_group_id=album_id,
                     title=title,
-                    artist_name=artist,
-                    year=year,
-                    genre=genre,
-                    genre_vibe=vibe,
-                    region_bucket=region,
-                    country=country,
+                    primary_artist_display=artist,
+                    original_year=year,
+                    primary_genre=genre,
+                    country_code=country,
                     popularity=popularity,
                     cover_url=f"https://picsum.photos/300/300?random={current_idx+1}"
                 )
+                node = MapNode(
+                    album_group_id=album_id,
+                    x=year,
+                    y=vibe,
+                    size=(popularity * 10) + 2
+                )
+                release = Release(
+                    release_id=f"local:release:{uuid.uuid4()}",
+                    album_group_id=album_id,
+                    release_title=title
+                )
                 albums.append(album)
+                nodes.append(node)
+                releases.append(release)
+                album = AlbumGroup(
+                    album_group_id=album_id,
+                    title=title,
+                    primary_artist_display=artist,
+                    original_year=year,
+                    primary_genre=genre,
+                    country_code=country,
+                    popularity=popularity,
+                    cover_url=f"https://picsum.photos/300/300?random={current_idx+1}"
+                )
+                node = MapNode(
+                    album_group_id=album_id,
+                    x=year,
+                    y=vibe,
+                    size=(popularity * 10) + 2
+                )
+                release = Release(
+                    release_id=f"local:release:{uuid.uuid4()}",
+                    album_group_id=album_id,
+                    release_title=title
+                )
+                albums.append(album)
+                nodes.append(node)
+                releases.append(release)
                 current_idx += 1
         
         # 랜덤 앨범으로 1000개 채우기
@@ -331,22 +380,35 @@ async def create_mock_albums():
             title = random.choice(title_templates).format(random.randint(1, 20))
             
             album_id = f"album_{len(albums)+1:04d}"
-            album = Album(
-                id=album_id,
+            album = AlbumGroup(
+                album_group_id=album_id,
                 title=title,
-                artist_name=artist,
-                year=year,
-                genre=genre_name,
-                genre_vibe=vibe,
-                region_bucket=region,
-                country=country,
+                primary_artist_display=artist,
+                original_year=year,
+                primary_genre=genre_name,
+                country_code=country,
                 popularity=popularity,
                 cover_url=f"https://picsum.photos/300/300?random={len(albums)+1}"
             )
+            node = MapNode(
+                album_group_id=album_id,
+                x=year,
+                y=vibe,
+                size=(popularity * 10) + 2
+            )
+            release = Release(
+                release_id=f"local:release:{uuid.uuid4()}",
+                album_group_id=album_id,
+                release_title=title
+            )
             albums.append(album)
+            nodes.append(node)
+            releases.append(release)
         
         # 배치 추가
         session.add_all(albums)
+        session.add_all(nodes)
+        session.add_all(releases)
         await session.commit()
         
         print(f"✅ {len(albums)}개의 앨범 데이터가 성공적으로 추가되었습니다!")

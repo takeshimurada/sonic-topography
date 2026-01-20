@@ -57,6 +57,71 @@ class APIResponse(BaseModel):
     meta: Optional[dict] = None
 
 # ========================================
+# New Detail Schemas (Target Schema)
+# ========================================
+
+class RoleResponse(BaseModel):
+    role_id: str
+    role_name: str
+    role_group: str
+
+class CreatorResponse(BaseModel):
+    creator_id: str
+    display_name: str
+    image_url: Optional[str] = None
+
+class AlbumCreditResponse(BaseModel):
+    creator: CreatorResponse
+    role: RoleResponse
+    credit_detail: Optional[str] = None
+    credit_order: Optional[int] = None
+
+class TrackCreditResponse(BaseModel):
+    creator: CreatorResponse
+    role: RoleResponse
+    credit_detail: Optional[str] = None
+    credit_order: Optional[int] = None
+
+class ReleaseResponse(BaseModel):
+    release_id: str
+    release_title: Optional[str] = None
+    release_date: Optional[date] = None
+    country_code: Optional[str] = None
+    edition: Optional[str] = None
+    cover_url: Optional[str] = None
+
+class TrackResponse(BaseModel):
+    track_id: str
+    disc_no: int
+    track_no: int
+    title: str
+    duration_ms: Optional[int] = None
+    isrc: Optional[str] = None
+
+class AssetResponse(BaseModel):
+    asset_id: str
+    asset_type: str
+    title: str
+    url: str
+    summary: Optional[str] = None
+    published_at: Optional[datetime] = None
+
+class AlbumLinkResponse(BaseModel):
+    provider: str
+    url: str
+    external_id: Optional[str] = None
+    is_primary: bool
+
+class AlbumGroupDetailResponse(BaseModel):
+    album: AlbumResponse
+    releases: List[ReleaseResponse]
+    tracks: List[TrackResponse]
+    album_credits: List[AlbumCreditResponse]
+    track_credits: List[TrackCreditResponse]
+    assets: List[AssetResponse]
+    album_links: List[AlbumLinkResponse]
+
+# ========================================
 # Step 1: 개발용 유저 Like & 이벤트 로그 스키마
 # ========================================
 
@@ -65,14 +130,14 @@ class DevUserCreateResponse(BaseModel):
 
 class LikeRequest(BaseModel):
     entity_type: Literal["album", "artist"]
-    entity_id: UUID
+    entity_id: str
 
 class LikeResponse(BaseModel):
     status: Literal["liked", "unliked"]
 
 class LikeItem(BaseModel):
     entity_type: str
-    entity_id: UUID
+    entity_id: str
     liked_at: datetime
 
 class LikesListResponse(BaseModel):
@@ -81,7 +146,7 @@ class LikesListResponse(BaseModel):
 class EventRequest(BaseModel):
     event_type: Literal["view_album", "view_artist", "search", "open_on_platform", "recommendation_click", "playlist_create"]
     entity_type: Optional[Literal["album", "artist"]] = None
-    entity_id: Optional[UUID] = None
+    entity_id: Optional[str] = None
     payload: Optional[dict] = None
 
 class EventResponse(BaseModel):

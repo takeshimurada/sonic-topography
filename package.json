@@ -4,39 +4,34 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "docker-compose up -d",
+    "stop:backend": "docker-compose stop",
     "fetch:spotify": "node scripts/fetch/spotify.mjs",
     "fetch:playlists": "node scripts/fetch/playlists.mjs",
+    "fetch:artists": "node scripts/fetch/enrich_artists.mjs",
+    "fetch:collaborations": "node scripts/fetch/enrich_collaborations.mjs",
+    "fetch:credits": "node scripts/fetch/enrich_credits.mjs",
+    "fetch:metadata": "npm run fetch:artists && npm run fetch:collaborations && npm run fetch:credits",
     "pipeline:normalize": "node scripts/pipeline/normalize.mjs",
     "pipeline:validate": "node scripts/pipeline/validate.mjs",
     "pipeline:enrich-genre": "node scripts/pipeline/enrich_genre.mjs",
     "pipeline:enrich-country": "node scripts/pipeline/enrich_country.mjs",
     "pipeline:report": "node scripts/pipeline/report_country.mjs",
     "pipeline:process": "npm run pipeline:normalize && npm run pipeline:enrich-genre && npm run pipeline:enrich-country",
-    "pipeline:import": "docker cp out/albums_spotify_v3.json sonic_backend:/out/albums_spotify_v3.json && docker exec sonic_backend python scripts/import_albums_v3.py",
+    "pipeline:import": "docker cp out/albums_spotify_v3.json sonic_backend:/out/albums_spotify_v3.json && docker exec sonic_backend python scripts/db/import_album_groups.py",
     "pipeline:all": "npm run pipeline:process && npm run pipeline:import",
+    "metadata:import": "docker cp out/artists_spotify.json sonic_backend:/out/ && docker cp out/album_collaborations.json sonic_backend:/out/ && docker cp out/album_credits.json sonic_backend:/out/ && docker exec sonic_backend python scripts/db/import_metadata.py",
+    "db:import-album-groups": "docker cp out/albums_spotify_v3.json sonic_backend:/out/ && docker exec sonic_backend python scripts/db/import_album_groups.py",
+    "db:seed-roles": "docker exec sonic_backend python scripts/db/seed_roles.py",
+    "db:migrate-target": "docker exec sonic_backend python scripts/db/migrate_to_target_schema.py",
     "db:seed": "docker exec sonic_backend python scripts/seed_albums.py",
     "db:classics": "docker exec sonic_backend python scripts/insert_classic_albums.py"
   },
   "dependencies": {
-    "@deck.gl/core": "8.9.35",
-    "@deck.gl/layers": "8.9.35",
-    "@deck.gl/react": "8.9.35",
-    "@google/generative-ai": "^0.21.0",
-    "d3": "7.9.0",
-    "deck.gl": "8.9.35",
-    "dotenv": "^17.2.3",
-    "lucide-react": "0.460.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "zustand": "4.5.2"
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@types/node": "^22.14.0"
   }
 }

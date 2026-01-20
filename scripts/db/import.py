@@ -18,7 +18,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from app.database import Base, DATABASE_URL
-from app.models import Album
+from app.models import AlbumGroup, MapNode, Release
+import uuid
 
 # Country to region mapping
 COUNTRY_TO_REGION = {
@@ -202,13 +203,15 @@ async def import_albums():
     
     # 4. 기존 앨범 ID 조회 (중복 방지)
     async with async_session() as session:
-        stmt = select(Album.id)
+        stmt = select(AlbumGroup.album_group_id)
         result = await session.execute(stmt)
         existing_ids = set(result.scalars().all())
         print(f"📋 Existing albums in DB: {len(existing_ids)}")
     
     # 5. 앨범 데이터 변환 및 임포트
     new_albums = []
+    new_nodes = []
+    new_releases = []
     skipped = 0
     skipped_albums = []  # 스킵된 앨범 정보 저장
     
@@ -241,20 +244,32 @@ async def import_albums():
         original_region = album_data.get('region_bucket', 'Unknown')
         region_bucket = get_region_from_country(country, fallback_region=original_region)
         
-        album = Album(
-            id=album_id,
+        genre_vibe = get_genre_vibe(genre_family, primary_genre, artist_genres)
+        popularity = album_data.get('popularity', 0) / 100.0
+        album = AlbumGroup(
+            album_group_id=album_id,
             title=album_data.get('title', 'Unknown Title'),
-            artist_name=album_data.get('artistName', 'Unknown Artist'),
-            year=album_data.get('year'),
-            genre=genre_family,
-            genre_vibe=get_genre_vibe(genre_family, primary_genre, artist_genres),  # ⭐ 세부 장르 활용!
-            region_bucket=region_bucket,  # ⭐ Country 기반으로 재계산된 region
-            country=country,
-            popularity=album_data.get('popularity', 0) / 100.0,  # 0-100 → 0.0-1.0
+            primary_artist_display=album_data.get('artistName', 'Unknown Artist'),
+            original_year=album_data.get('year'),
+            primary_genre=genre_family,
+            country_code=country,
+            popularity=popularity,
             cover_url=album_data.get('artworkUrl'),
         )
-        
+        node = MapNode(
+            album_group_id=album_id,
+            x=album_data.get('year') or 0,
+            y=genre_vibe,
+            size=(popularity * 10) + 2
+        )
+        release = Release(
+            release_id=f"local:release:{uuid.uuid4()}",
+            album_group_id=album_id,
+            release_title=album_data.get('title', 'Unknown Title')
+        )
         new_albums.append(album)
+        new_nodes.append(node)
+        new_releases.append(release)
     
     # 상세한 로깅
     print(f"\n{'='*70}")
@@ -291,12 +306,15 @@ async def import_albums():
             await session.commit()
             total_inserted += len(batch)
             print(f"💾 Inserted {total_inserted}/{len(new_albums)} albums...")
+        session.add_all(new_nodes)
+        session.add_all(new_releases)
+        await session.commit()
     
     print(f"✅ Import complete! Total inserted: {total_inserted}")
     
     # 7. 검증 (최종 카운트)
     async with async_session() as session:
-        stmt = select(Album)
+        stmt = select(AlbumGroup)
         result = await session.execute(stmt)
         all_albums = result.scalars().all()
         
