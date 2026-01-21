@@ -10,13 +10,27 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)](https://www.postgresql.org/)
 [![Deck.gl](https://img.shields.io/badge/Deck.gl-8.9-ff69b4)](https://deck.gl/)
 
-**Version 4.0.0** | 2026-01-21
+**Version 4.1.0** | 2026-01-21
 
 </div>
 
 ---
 
 ## 📝 Changelog
+
+### Version 4.1.0 (2026-01-21)
+
+#### 🔧 메타데이터 임포트 시스템 개선
+- ✅ **Spotify 프로필 임포트 버그 수정**: Creators가 이미 존재해도 프로필이 없으면 자동 추가
+- ✅ **Phase 분리**: Phase 1a (Creators), Phase 1b (Spotify Profiles) 독립 처리
+- ✅ **통계 출력 개선**: 최종 DB 통계에 `creator_spotify_profile` 개수 추가
+- ✅ **누락 방지**: 나중에 `npm run metadata:import` 재실행 시 프로필 자동 보완
+
+#### 📊 데이터 무결성
+- ✅ **메타데이터 완전성 확인**: 769개 Spotify 프로필 추가 임포트
+- ✅ **자동화 개선**: 한 번의 명령으로 모든 메타데이터 임포트 보장
+
+---
 
 ### Version 4.0.0 (2026-01-21)
 

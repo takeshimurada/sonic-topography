@@ -55,9 +55,9 @@ async def ensure_role(session: AsyncSession, role_name: str, role_group: str = "
     return role_id
 
 async def import_creators():
-    """Phase 1: 아티스트 기본 정보 임포트 -> creators + creator_spotify_profile"""
+    """Phase 1a: 아티스트 기본 정보 임포트 -> creators"""
     print("\n" + "="*70)
-    print("🎤 Phase 1: 아티스트 정보 임포트")
+    print("🎤 Phase 1a: Creators 임포트")
     print("="*70 + "\n")
 
     # JSON 로드
@@ -76,11 +76,10 @@ async def import_creators():
         stmt = select(Creator.creator_id)
         result = await session.execute(stmt)
         existing_ids = set(result.scalars().all())
-        print(f"📋 기존 DB creators: {len(existing_ids)}개\n")
+        print(f"📋 기존 DB creators: {len(existing_ids)}개")
 
     # 새 아티스트 필터링
     new_creators = []
-    new_profiles = []
     skipped = 0
 
     for artist_id, artist_data in artists_data.items():
@@ -96,14 +95,7 @@ async def import_creators():
             image_url=artist_data.get('image_url'),
             kind='person',
             primary_role_tag='artist',
-            country_code=artist_data.get('country_code')  # 🌍 MusicBrainz에서 수집한 국가 코드
-        ))
-        new_profiles.append(CreatorSpotifyProfile(
-            creator_id=creator_id,
-            genres=artist_data.get('genres', []),
-            popularity=artist_data.get('popularity'),
-            followers=artist_data.get('followers'),
-            spotify_url=artist_data.get('spotify_url')
+            country_code=artist_data.get('country_code')
         ))
 
     # 국가 정보 통계
@@ -111,13 +103,12 @@ async def import_creators():
     country_percentage = (country_count / len(new_creators) * 100) if len(new_creators) > 0 else 0
     
     print(f"📊 임포트 분석:")
-    print(f"   • 전체: {len(artists_data)}개")
     print(f"   • 이미 존재: {skipped}개")
     print(f"   • 새로 추가: {len(new_creators)}개")
     print(f"   • 국가 정보: {country_count}/{len(new_creators)} ({country_percentage:.1f}%)\n")
 
     if len(new_creators) == 0:
-        print("✅ 추가할 creator가 없습니다.")
+        print("✅ 추가할 creator가 없습니다.\n")
         return 0
 
     # 배치 임포트
@@ -129,14 +120,72 @@ async def import_creators():
             await session.commit()
             print(f"💾 Inserted {min(i+batch_size, len(new_creators))}/{len(new_creators)} creators...")
 
+    print(f"\n✅ Creators 임포트 완료: {len(new_creators)}개\n")
+    return len(new_creators)
+
+
+async def import_spotify_profiles():
+    """Phase 1b: Spotify 프로필 임포트 -> creator_spotify_profile"""
+    print("\n" + "="*70)
+    print("🎵 Phase 1b: Spotify 프로필 임포트")
+    print("="*70 + "\n")
+
+    # JSON 로드
+    try:
+        with open(ARTISTS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            artists_data = data.get('artists', {})
+    except FileNotFoundError:
+        print(f"⚠️  {ARTISTS_FILE} 파일이 없습니다. 스킵합니다.")
+        return 0
+    
+    print(f"📥 아티스트 데이터 로드: {len(artists_data)}개")
+
+    # 기존 프로필 체크
+    async with async_session() as session:
+        stmt = select(CreatorSpotifyProfile.creator_id)
+        result = await session.execute(stmt)
+        existing_profiles = set(result.scalars().all())
+        print(f"📋 기존 DB profiles: {len(existing_profiles)}개")
+
+    # 새 프로필 생성
+    new_profiles = []
+    skipped = 0
+
+    for artist_id, artist_data in artists_data.items():
+        creator_id = to_creator_id(artist_id)
+        
+        if creator_id in existing_profiles:
+            skipped += 1
+            continue
+        
+        new_profiles.append(CreatorSpotifyProfile(
+            creator_id=creator_id,
+            genres=artist_data.get('genres', []),
+            popularity=artist_data.get('popularity'),
+            followers=artist_data.get('followers'),
+            spotify_url=artist_data.get('spotify_url')
+        ))
+    
+    print(f"📊 임포트 분석:")
+    print(f"   • 이미 존재: {skipped}개")
+    print(f"   • 새로 추가: {len(new_profiles)}개\n")
+    
+    if len(new_profiles) == 0:
+        print("✅ 추가할 프로필이 없습니다.\n")
+        return 0
+    
+    # 배치 임포트
+    async with async_session() as session:
+        batch_size = 500
         for i in range(0, len(new_profiles), batch_size):
             batch = new_profiles[i:i+batch_size]
             session.add_all(batch)
             await session.commit()
-            print(f"💾 Inserted {min(i+batch_size, len(new_profiles))}/{len(new_profiles)} spotify profiles...")
-
-    print(f"\n✅ creators 임포트 완료: {len(new_creators)}개")
-    return len(new_creators)
+            print(f"💾 Inserted {min(i+batch_size, len(new_profiles))}/{len(new_profiles)} profiles...")
+    
+    print(f"\n✅ Spotify 프로필 임포트 완료: {len(new_profiles)}개\n")
+    return len(new_profiles)
 
 
 async def import_collaborations():
@@ -345,17 +394,35 @@ async def show_statistics():
     print("="*70 + "\n")
 
     async with async_session() as session:
-        # 아티스트 수
+        # Creators
         stmt = select(Creator)
         result = await session.execute(stmt)
         creators = result.scalars().all()
-        print(f"🎤 creators: {len(creators)}개")
+        print(f"✅ creators: {len(creators)}개")
 
-        # 앨범-아티스트 관계
+        # Spotify Profiles
+        stmt = select(CreatorSpotifyProfile)
+        result = await session.execute(stmt)
+        profiles = result.scalars().all()
+        print(f"✅ creator_spotify_profile: {len(profiles)}개")
+
+        # Album Credits
         stmt = select(AlbumCredit)
         result = await session.execute(stmt)
         credits = result.scalars().all()
-        print(f"🎼 album_credits: {len(credits)}개")
+        print(f"✅ album_credits: {len(credits)}개")
+
+        # Album Groups
+        stmt = select(AlbumGroup)
+        result = await session.execute(stmt)
+        albums = result.scalars().all()
+        print(f"✅ album_groups: {len(albums)}개")
+
+        # Roles
+        stmt = select(Role)
+        result = await session.execute(stmt)
+        roles = result.scalars().all()
+        print(f"✅ roles: {len(roles)}개")
 
         # 크레딧 역할별 분포
         role_counts = {}
@@ -363,7 +430,7 @@ async def show_statistics():
             role_counts[credit.role_id] = role_counts.get(credit.role_id, 0) + 1
         
         if role_counts:
-            print("\n   역할별 분포:")
+            print("\n   역할별 분포 (Top 10):")
             for role, count in sorted(role_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
                 print(f"   • {role}: {count}개")
 
@@ -377,8 +444,11 @@ async def main():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Phase 1: 아티스트
+    # Phase 1a: Creators
     artists_count = await import_creators()
+
+    # Phase 1b: Spotify Profiles
+    profiles_count = await import_spotify_profiles()
 
     # Phase 2: 협업 관계
     collab_count = await import_collaborations()
@@ -393,7 +463,8 @@ async def main():
     print("✅ 메타데이터 임포트 완료!")
     print("="*70)
     print(f"\n📈 임포트 요약:")
-    print(f"   • 아티스트: {artists_count}개")
+    print(f"   • Creators: {artists_count}개")
+    print(f"   • Spotify Profiles: {profiles_count}개")
     print(f"   • 협업 관계: {collab_count}개")
     print(f"   • 크레딧: {credits_count}개")
     print()
