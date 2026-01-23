@@ -310,6 +310,7 @@ const GENRE_RGB: Record<string, [number, number, number]> = {
   'Alternative': [251, 146, 60],    // 주황
   'Indie': [253, 186, 116],
   'Punk': [234, 88, 12],
+  'Alternative/Indie': [251, 146, 60], // DB 실제 장르
   
   // 팝/댄스
   'Pop': [236, 72, 153],            // 핑크
@@ -324,16 +325,19 @@ const GENRE_RGB: Record<string, [number, number, number]> = {
   'Rap': [202, 138, 4],
   'R&B': [132, 204, 22],            // 라임
   'Soul': [101, 163, 13],
+  'R&B/Soul': [132, 204, 22],       // DB 실제 장르
   
   // 재즈/블루스
   'Jazz': [59, 130, 246],           // 파랑
   'Blues': [37, 99, 235],
   'Funk': [29, 78, 216],
+  'Jazz/Blues': [59, 130, 246],     // DB 실제 장르
   
   // 클래식/포크
-  'Classical': [156, 163, 175],     // 회색
+  'Classical': [167, 139, 250],     // 연보라 (우아함)
   'Folk': [134, 239, 172],          // 민트
   'Country': [74, 222, 128],        // 초록
+  'Folk/World': [134, 239, 172],    // DB 실제 장르
   
   // 월드/기타
   'World': [251, 191, 36],          // 노랑
@@ -341,9 +345,45 @@ const GENRE_RGB: Record<string, [number, number, number]> = {
   'Reggae': [20, 184, 166],         // 청록
   'K-Pop': [244, 114, 182],         // 핑크
   'J-Pop': [217, 70, 239],          // 자주색
+  'K-pop/Asia Pop': [244, 114, 182], // DB 실제 장르
+  
+  // Unknown
+  'Unknown': [148, 163, 184],       // 회색
   
   // 기본값
   'Other': [148, 163, 184],         // 회색
+};
+
+// 🎨 장르 색상 매칭 헬퍼 (스마트 매칭)
+const getGenreColor = (genre: string | undefined | null): [number, number, number] => {
+  if (!genre) return GENRE_RGB['Other'];
+  
+  // 1. 정확한 매칭 (대소문자 구분)
+  if (GENRE_RGB[genre]) return GENRE_RGB[genre];
+  
+  // 2. 대소문자 무시 매칭
+  const lowerGenre = genre.toLowerCase();
+  const matchedKey = Object.keys(GENRE_RGB).find(key => key.toLowerCase() === lowerGenre);
+  if (matchedKey) return GENRE_RGB[matchedKey];
+  
+  // 3. 슬래시(/) 분리된 경우 첫 번째 장르 사용
+  if (genre.includes('/')) {
+    const firstGenre = genre.split('/')[0].trim();
+    if (GENRE_RGB[firstGenre]) return GENRE_RGB[firstGenre];
+    
+    // 대소문자 무시 재시도
+    const matchedFirst = Object.keys(GENRE_RGB).find(key => key.toLowerCase() === firstGenre.toLowerCase());
+    if (matchedFirst) return GENRE_RGB[matchedFirst];
+  }
+  
+  // 4. 부분 매칭 (포함 관계)
+  const partialMatch = Object.keys(GENRE_RGB).find(key => 
+    lowerGenre.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerGenre)
+  );
+  if (partialMatch) return GENRE_RGB[partialMatch];
+  
+  // 5. 기본값
+  return GENRE_RGB['Other'];
 };
 
 export const MapCanvas: React.FC = () => {
@@ -434,6 +474,13 @@ export const MapCanvas: React.FC = () => {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [clickedAlbum]);
+
+  // DetailPanel이 닫힐 때 clickedAlbum도 초기화 (노드 원상태 복구)
+  useEffect(() => {
+    if (!selectedAlbumId && clickedAlbum) {
+      setClickedAlbum(null);
+    }
+  }, [selectedAlbumId, clickedAlbum]);
 
   // scales를 먼저 정의
   const scales = useMemo(() => {
@@ -594,7 +641,7 @@ export const MapCanvas: React.FC = () => {
         })(),
         getSourcePosition: (d: any) => [0, scales.yScale(d.y), 0],
         getTargetPosition: (d: any) => [WORLD_WIDTH, scales.yScale(d.y), 0],
-        getColor: [148, 163, 184],
+        getColor: [209, 213, 219],  // gray-300
         getWidth: 1.5,
         opacity: gridVisible,
         transitions: {
@@ -615,7 +662,7 @@ export const MapCanvas: React.FC = () => {
         data: [{ year: 1950 }],
         getSourcePosition: (d: any) => [scales.xScale(d.year), 0, 0],
         getTargetPosition: (d: any) => [scales.xScale(d.year), WORLD_HEIGHT, 0],
-        getColor: [99, 102, 241, 150], // 보라색, 투명도 낮춤
+        getColor: [0, 0, 0, 150], // 검은색
         getWidth: 1.5,
         opacity: gridVisible * 0.8,
         transitions: {
@@ -713,7 +760,7 @@ export const MapCanvas: React.FC = () => {
         getTargetPosition: (d: any) => [scales.xScale(d.year), WORLD_HEIGHT, 0],
         getColor: (d: any) => {
           const opacity = d.baseOpacity * gridVisible * 255;  // gridVisible 적용
-          return [148, 163, 184, opacity];
+          return [209, 213, 219, opacity];  // gray-300
         },
         getWidth: (d: any) => {
           if (d.isDecade) return 2.0; // 10년 단위: 굵게
@@ -764,7 +811,7 @@ export const MapCanvas: React.FC = () => {
           return [scales.xScale(d.year), topEdgeY + 40, 0];  // 상단에서 40px 아래
         },
         getText: (d: any) => String(d.year),
-        getColor: [255, 255, 255, 255],
+        getColor: [0, 0, 0, 255],  // 검은색 텍스트
         getSize: containerSize.width < 640 ? 10 : containerSize.width < 1024 ? 11 : 12,
         getTextAnchor: 'middle',
         getAlignmentBaseline: 'center',
@@ -829,10 +876,10 @@ export const MapCanvas: React.FC = () => {
           return [labelX, regionY, 0];
         },
         getText: (d: any): string => containerSize.width < 640 ? d.text.split(' ')[0] : d.text, // 작은 화면에서는 첫 단어만
-        getColor: [255, 255, 255, 255],
+        getColor: [0, 0, 0, 255],  // 검은색 텍스트
         getSize: containerSize.width < 640 ? 10 : containerSize.width < 1024 ? 12 : 14,
         outlineWidth: containerSize.width < 640 ? 2 : 3,
-        outlineColor: [0, 0, 0, 255],
+        outlineColor: [255, 255, 255, 255],  // 흰색 outline
         getTextAnchor: 'end' as const,  // 오른쪽 끝 기준 (왼쪽으로 뻗어나감)
         getAlignmentBaseline: 'center' as const,
         opacity: gridVisible,
@@ -871,9 +918,9 @@ export const MapCanvas: React.FC = () => {
           const isSearchMatched = searchMatchedAlbumIds.includes(d.id);
           const hasSearchQuery = searchQuery.trim().length > 0;
           
-          // 장르 기반 색상
-          const genre = d.genres[0] || 'Other';
-          const baseColor = GENRE_RGB[genre] || GENRE_RGB['Other'];
+          // 🎨 장르 기반 색상 (스마트 매칭)
+          const genre = d.genres[0];
+          const baseColor = getGenreColor(genre);
           
           // 선택된 앨범: 가장 밝게 + 강조
           if (isSelected) {
@@ -909,17 +956,24 @@ export const MapCanvas: React.FC = () => {
           // 기본 상태: 밝게 표시
           return [...baseColor, 220] as [number, number, number, number];
         },
-        getLineColor: [255, 255, 255],
-        getLineWidth: (d: Album) => d.id === selectedAlbumId ? 2 : 0,
+        getLineColor: [0, 0, 0, 255],
+        getLineWidth: (d: Album) => {
+          const isClicked = clickedAlbum?.album.id === d.id;
+          const isSelected = d.id === selectedAlbumId;
+          return (isClicked || isSelected) ? 0.5 : 0;
+        },
         getRadius: (d: Album) => {
-          const base = (d.popularity || 0.5) * 2.5 + 2; // 약간 작게
-          return d.id === selectedAlbumId ? base * 2 : base;
+          const base = (d.popularity || 0.5) * 2.5 + 2;
+          // clickedAlbum이나 selectedAlbumId일 때 모두 크게 표시
+          const isClicked = clickedAlbum?.album.id === d.id;
+          const isSelected = d.id === selectedAlbumId;
+          return (isClicked || isSelected) ? base * 1.8 : base;
         },
         pickable: true,
         stroked: true,
         radiusScale: 1,
-        radiusMinPixels: 3,  // 최소 크기 더 작게 (더 많이 보임)
-        radiusMaxPixels: 25, // 최대 크기도 줄임
+        radiusMinPixels: 3,
+        radiusMaxPixels: 30,
         opacity: 0.85,
       onHover: (info: PickingInfo) => {
         if (info.object) {
@@ -939,31 +993,17 @@ export const MapCanvas: React.FC = () => {
       },
       updateTriggers: {
         getFillColor: [selectedAlbumId, brushedAlbumIds, viewportYearRange, searchMatchedAlbumIds, searchQuery],
-        getLineWidth: [selectedAlbumId],
-        getRadius: [selectedAlbumId],
+        getLineWidth: [selectedAlbumId, clickedAlbum],
+        getRadius: [selectedAlbumId, clickedAlbum],
         getPosition: [scales]
       }
     })];
-  }, [filteredAlbums, selectedAlbumId, brushedAlbumIds, viewportYearRange, scales, selectAlbum, showGrid, searchMatchedAlbumIds, searchQuery]);
+  }, [filteredAlbums, selectedAlbumId, brushedAlbumIds, viewportYearRange, scales, selectAlbum, showGrid, searchMatchedAlbumIds, searchQuery, clickedAlbum]);
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden">
-      {/* 구(Sphere) 형태 블러 - 입체감 */}
-      <div className="absolute inset-0 pointer-events-none z-30">
-        {/* Radial gradient로 구형 블러 */}
-        <div 
-          className="absolute inset-0" 
-          style={{
-            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.7) 85%, black 100%)'
-          }}
-        />
-        {/* 추가 좌우 블러 (강화) */}
-        <div className="absolute top-0 left-0 bottom-0 w-64 bg-gradient-to-r from-black via-black/70 to-transparent" />
-        <div className="absolute top-0 right-0 bottom-0 w-64 bg-gradient-to-l from-black via-black/70 to-transparent" />
-        {/* 추가 상하 블러 (깊이감) */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/80 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
-      </div>
+    <div className="relative w-full h-full overflow-hidden">
+      {/* Vignette Effect - 완전 투명 (제거됨) */}
+    
 
       <div className="w-full h-full relative">
         <DeckGL
@@ -971,6 +1011,11 @@ export const MapCanvas: React.FC = () => {
           height="100%"
           viewState={viewState}
           onViewStateChange={({ viewState: newViewState }: any) => {
+            // 드래그/줌 시 DetailPanel 자동 닫기
+            if (selectedAlbumId) {
+              selectAlbum(null);
+            }
+            
             // 그리드 표시 (줌/팬 중)
             setShowGrid(true);
             if (fadeTimerRef.current) {
@@ -1051,13 +1096,13 @@ export const MapCanvas: React.FC = () => {
           })}
           getCursor={() => 'grab'}
           parameters={{
-            clearColor: [0, 0, 0, 0]
+            clearColor: [1, 1, 1, 1]  // 흰색 배경
           }}
         >
           {hoverInfo && !clickedAlbum && (
-            <div className="absolute z-50 bg-panel border border-slate-600 p-2 rounded shadow-lg pointer-events-none text-xs" style={{ left: hoverInfo.x + 10, top: hoverInfo.y + 10 }}>
-              <div className="font-bold text-white">{hoverInfo.object.title}</div>
-              <div className="text-slate-400">{hoverInfo.object.artist} ({hoverInfo.object.year})</div>
+            <div className="absolute z-50 bg-white border border-gray-200 p-2 rounded shadow-lg pointer-events-none text-xs" style={{ left: hoverInfo.x + 10, top: hoverInfo.y + 10 }}>
+              <div className="font-bold text-black">{hoverInfo.object.title}</div>
+              <div className="text-gray-600">{hoverInfo.object.artist} ({hoverInfo.object.year})</div>
             </div>
           )}
           
@@ -1065,7 +1110,7 @@ export const MapCanvas: React.FC = () => {
           {clickedAlbum && (
             <div 
               ref={popupRef}
-              className="absolute z-50 w-[320px] sm:w-[360px] md:w-[400px] lg:w-[440px] bg-[#12131D]/98 backdrop-blur-3xl border border-accent/40 rounded-xl shadow-[0_20px_60px_-10px_rgba(99,102,241,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300"
+              className="absolute z-50 w-[320px] sm:w-[360px] md:w-[400px] lg:w-[440px] bg-white backdrop-blur-3xl border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300"
               style={{ 
                 left: Math.min(clickedAlbum.x + 20, window.innerWidth - 340), 
                 top: Math.min(clickedAlbum.y, window.innerHeight - 280) 
@@ -1079,9 +1124,9 @@ export const MapCanvas: React.FC = () => {
                     alt={clickedAlbum.album.title} 
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-white mb-1 truncate">{clickedAlbum.album.title}</h3>
-                    <p className="text-xs sm:text-sm md:text-base text-slate-400 truncate">{clickedAlbum.album.artist}</p>
-                    <div className="flex items-center gap-2 mt-2 text-[10px] sm:text-xs md:text-sm text-slate-500">
+                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-black mb-1 truncate">{clickedAlbum.album.title}</h3>
+                    <p className="text-xs sm:text-sm md:text-base text-gray-600 truncate">{clickedAlbum.album.artist}</p>
+                    <div className="flex items-center gap-2 mt-2 text-[10px] sm:text-xs md:text-sm text-gray-500">
                       <span>{clickedAlbum.album.year}</span>
                       <span>•</span>
                       <span>{clickedAlbum.album.country}</span>
@@ -1097,7 +1142,7 @@ export const MapCanvas: React.FC = () => {
                       selectAlbum(clickedAlbum.album.id);
                       setClickedAlbum(null);
                     }}
-                    className="flex-1 px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 bg-accent hover:bg-accent/80 text-white text-xs sm:text-sm md:text-base font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                    className="flex-1 px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 bg-black hover:bg-gray-800 text-white text-xs sm:text-sm md:text-base font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                   >
                     View Detail
                   </button>
@@ -1105,7 +1150,7 @@ export const MapCanvas: React.FC = () => {
                     onClick={() => {
                       setClickedAlbum(null);
                     }}
-                    className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs sm:text-sm md:text-base font-bold rounded-lg transition-all"
+                    className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-black text-xs sm:text-sm md:text-base font-bold rounded-lg transition-all"
                   >
                     Close
                   </button>

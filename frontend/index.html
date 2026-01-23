@@ -13,10 +13,11 @@
         theme: {
           extend: {
             colors: {
-              space: '#0B0C15',
-              panel: '#151621',
-              accent: '#6366F1',
-              'accent-hover': '#4F46E5',
+              space: '#F8F8F8',
+              panel: '#FFFFFF',
+              accent: '#000000',
+              'accent-hover': '#333333',
+              'border-light': '#E5E5E5',
             }
           }
         }
@@ -25,13 +26,14 @@
     <style>
       html, body, #root {
         height: 100%; width: 100%; margin: 0; padding: 0;
-        background-color: #0B0C15; color: #E2E8F0; overflow: hidden;
+        background-color: #F8F8F8; color: #000000; overflow: hidden;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
       .loader-spin { animation: spin 1s linear infinite; }
-      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: #F0F0F0; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #999999; }
     </style>
     <script type="importmap">
 {
@@ -56,8 +58,8 @@
   </head>
   <body>
     <div id="root">
-      <div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#0B0C15;">
-        <div class="loader-spin" style="width:40px; height:40px; border:3px solid #6366F1; border-top-color:transparent; border-radius:50%;"></div>
+      <div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#F8F8F8;">
+        <div class="loader-spin" style="width:40px; height:40px; border:3px solid #000000; border-top-color:transparent; border-radius:50%;"></div>
       </div>
     </div>
     <script type="module" src="./src/index.tsx"></script>

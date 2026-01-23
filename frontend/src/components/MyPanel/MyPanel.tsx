@@ -115,41 +115,38 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-panel border border-slate-700 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         
-        {/* Header */}
-        <div className="p-8 border-b border-slate-800">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <span className="bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">My</span>
-              </h2>
-              <p className="text-slate-400 text-sm">당신의 음악 취향을 한눈에</p>
-            </div>
+        {/* Header - 슬림하고 모던하게 */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-black tracking-tight">
+              Library
+            </h2>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-white/5 rounded-full transition-colors"
+              className="p-1.5 hover:bg-gray-100 rounded transition-colors"
             >
-              <Music2 size={24} className="text-slate-400" />
+              <Music2 size={18} className="text-gray-400 hover:text-black transition-colors" />
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6">
+          {/* Tabs - 미니멀하고 시크하게 */}
+          <div className="flex gap-1 mt-4">
             <button
               onClick={() => setActiveTab('wishlist')}
-              className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 py-2 text-sm font-semibold transition-all flex items-center justify-center gap-1.5 rounded ${
                 activeTab === 'wishlist'
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/30'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                  ? 'bg-black text-white'
+                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
               }`}
             >
-              <Heart size={18} fill={activeTab === 'wishlist' ? 'white' : 'none'} />
-              듣고 싶어요
+              <Heart size={14} fill={activeTab === 'wishlist' ? 'white' : 'none'} strokeWidth={2} />
+              Wishlist
               {likes.length > 0 && (
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  activeTab === 'wishlist' ? 'bg-white/20' : 'bg-white/10'
+                <span className={`ml-1 text-xs ${
+                  activeTab === 'wishlist' ? 'text-white/70' : 'text-gray-400'
                 }`}>
                   {likes.length}
                 </span>
@@ -157,17 +154,17 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </button>
             <button
               onClick={() => setActiveTab('rated')}
-              className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 py-2 text-sm font-semibold transition-all flex items-center justify-center gap-1.5 rounded ${
                 activeTab === 'rated'
-                  ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg shadow-yellow-500/30'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                  ? 'bg-black text-white'
+                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
               }`}
             >
-              <Star size={18} fill={activeTab === 'rated' ? 'white' : 'none'} />
-              평가한 앨범
+              <Star size={14} fill={activeTab === 'rated' ? 'white' : 'none'} strokeWidth={2} />
+              Rated
               {logs.length > 0 && (
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  activeTab === 'rated' ? 'bg-white/20' : 'bg-white/10'
+                <span className={`ml-1 text-xs ${
+                  activeTab === 'rated' ? 'text-white/70' : 'text-gray-400'
                 }`}>
                   {logs.length}
                 </span>
@@ -175,18 +172,18 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </button>
           </div>
 
-          {/* Search & Filter */}
-          <div className="flex gap-4">
+          {/* Search & Filter - 슬림하게 */}
+          <div className="flex gap-2 mt-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
               <input
                 id="my-search"
                 name="my-search"
                 type="text"
-                placeholder="앨범이나 아티스트 검색..."
+                placeholder="Search albums or artists..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-black/20 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-accent"
+                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm text-black placeholder-gray-400 focus:outline-none focus:bg-white focus:border-black transition-all"
               />
             </div>
             {activeTab === 'rated' && (
@@ -198,39 +195,37 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   setSortBy(e.target.value as 'date' | 'rating');
                   loadAllLogs();
                 }}
-                className="px-4 py-3 bg-black/20 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-accent"
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm text-black focus:outline-none focus:bg-white focus:border-black transition-all"
               >
-                <option value="date">최근 순</option>
-                <option value="rating">평점 순</option>
+                <option value="date">Recent</option>
+                <option value="rating">Rating</option>
               </select>
             )}
             {activeTab === 'wishlist' && (
               <button
                 onClick={loadLikes}
                 disabled={loading}
-                className="px-4 py-3 bg-black/20 border border-slate-700 rounded-xl hover:bg-black/30 transition-colors disabled:opacity-50"
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 transition-colors disabled:opacity-50"
               >
-                <RefreshCw size={18} className={`text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw size={14} className={`text-gray-600 ${loading ? 'animate-spin' : ''}`} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-4">
+        {/* Content - 여백 줄임 */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-3">
           {activeTab === 'wishlist' ? (
             // Wishlist Tab
             loading ? (
               <div className="flex items-center justify-center py-20">
-                <RefreshCw size={32} className="text-slate-600 animate-spin" />
+                <RefreshCw size={32} className="text-gray-400 animate-spin" />
               </div>
             ) : filteredLikes.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-20">
-                <div className="w-20 h-20 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full flex items-center justify-center mb-4">
-                  <Heart size={40} className="text-pink-500" />
-                </div>
-                <p className="text-slate-400 text-lg mb-2">아직 담아둔 앨범이 없습니다</p>
-                <p className="text-slate-600 text-sm">마음에 드는 앨범에 ❤️를 눌러보세요!</p>
+              <div className="h-full flex flex-col items-center justify-center text-center py-16">
+                <Heart size={32} className="text-gray-300 mb-3" />
+                <p className="text-gray-500 text-sm mb-1">No albums in wishlist</p>
+                <p className="text-gray-400 text-xs">Like albums to add them here</p>
               </div>
             ) : (
               filteredLikes.map((like) => {
@@ -241,20 +236,20 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   <div 
                     key={like.entity_id}
                     onClick={() => handleAlbumClick(like.entity_id)}
-                    className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:bg-slate-900/80 hover:border-pink-500/40 transition-all cursor-pointer group"
+                    className="bg-white border border-gray-200 rounded-lg p-4 hover:border-black hover:shadow-sm transition-all cursor-pointer group"
                   >
                     <div className="flex gap-6">
-                      <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+                      <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                         <img src={album.coverUrl} alt={album.title} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-bold text-white truncate group-hover:text-pink-400 transition-colors mb-2">
+                        <h3 className="text-sm font-semibold text-black truncate group-hover:text-black transition-colors mb-1">
                           {album.title}
                         </h3>
-                        <p className="text-slate-400 text-sm truncate mb-3">
+                        <p className="text-gray-500 text-xs truncate mb-2">
                           {album.artist} • {album.year}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 text-[10px] text-gray-400">
                           <Calendar size={12} />
                           {new Date(like.liked_at).toLocaleDateString('ko-KR')}
                         </div>
@@ -270,31 +265,29 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           ) : (
             // Rated Albums Tab
             filteredLogs.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-20">
-                <div className="w-20 h-20 bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-full flex items-center justify-center mb-4">
-                  <Star size={40} className="text-yellow-500" />
-                </div>
-                <p className="text-slate-400 text-lg mb-2">아직 평가한 앨범이 없습니다</p>
-                <p className="text-slate-600 text-sm">앨범을 선택하고 평점과 메모를 남겨보세요!</p>
+              <div className="h-full flex flex-col items-center justify-center text-center py-16">
+                <Star size={32} className="text-gray-300 mb-3" />
+                <p className="text-gray-500 text-sm mb-1">No rated albums</p>
+                <p className="text-gray-400 text-xs">Rate albums to track your collection</p>
               </div>
             ) : (
               filteredLogs.map(log => (
                 <div 
                   key={log.albumId}
                   onClick={() => handleAlbumClick(log.albumId)}
-                  className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:bg-slate-900/80 hover:border-slate-700 transition-all cursor-pointer group"
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:border-black hover:shadow-sm transition-all cursor-pointer group"
                 >
                   <div className="flex gap-6">
-                    <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+                    <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <img src={log.albumCover} alt={log.albumTitle} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                          <h3 className="text-sm font-semibold text-black truncate">
                             {log.albumTitle}
                           </h3>
-                          <p className="text-slate-400 text-sm truncate">
+                          <p className="text-gray-500 text-xs truncate">
                             {log.albumArtist} • {log.albumYear}
                           </p>
                         </div>
@@ -307,29 +300,29 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       </div>
 
                       {/* Rating */}
-                      <div className="flex items-center gap-1 mb-3">
+                      <div className="flex items-center gap-1 mb-2">
                         {[1, 2, 3, 4, 5].map(star => (
                           <Star 
                             key={star}
-                            size={16} 
+                            size={14} 
                             fill={star <= log.rating ? "#FBBF24" : "none"}
-                            className={star <= log.rating ? "text-yellow-400" : "text-slate-700"}
+                            className={star <= log.rating ? "text-yellow-400" : "text-gray-300"}
                           />
                         ))}
-                        <span className="ml-2 text-xs text-slate-500">
+                        <span className="ml-1 text-[10px] text-gray-400">
                           ({log.rating}/5)
                         </span>
                       </div>
 
                       {/* Memo */}
                       {log.memo && (
-                        <p className="text-slate-300 text-sm line-clamp-2 mb-2">
+                        <p className="text-gray-700 text-sm line-clamp-2 mb-2">
                           "{log.memo}"
                         </p>
                       )}
 
                       {/* Date */}
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Calendar size={12} />
                         {new Date(log.updatedAt).toLocaleDateString('ko-KR', {
                           year: 'numeric',
@@ -345,45 +338,45 @@ export const MyPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )}
         </div>
 
-        {/* Footer Stats */}
-        <div className="p-6 border-t border-slate-800 bg-black/20">
+        {/* Footer Stats - 제거 또는 슬림하게 */}
+        <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
           <div className="flex justify-around text-center">
             {activeTab === 'wishlist' ? (
               <>
                 <div>
-                  <div className="text-2xl font-bold text-pink-500">{likes.length}</div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wider">Wishlist</div>
+                  <div className="text-lg font-bold text-black">{likes.length}</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider">Wishlist</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-purple-400">
+                  <div className="text-lg font-bold text-black">
                     {likes.length > 0 ? Math.round((likes.length / albums.length) * 100) : 0}%
                   </div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wider">Collection</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider">Collection</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-emerald-400">
+                  <div className="text-lg font-bold text-black">
                     {likes.slice(0, 7).length}
                   </div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wider">This Week</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider">This Week</div>
                 </div>
               </>
             ) : (
               <>
                 <div>
-                  <div className="text-2xl font-bold text-yellow-400">{logs.length}</div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wider">Total Logs</div>
+                  <div className="text-lg font-bold text-black">{logs.length}</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider">Rated</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-amber-400">
+                  <div className="text-lg font-bold text-black">
                     {logs.length > 0 ? (logs.reduce((sum, log) => sum + log.rating, 0) / logs.length).toFixed(1) : '0.0'}
                   </div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wider">Avg Rating</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider">Avg</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-emerald-400">
+                  <div className="text-lg font-bold text-black">
                     {logs.filter(l => l.rating >= 4).length}
                   </div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wider">Favorites</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider">Top</div>
                 </div>
               </>
             )}

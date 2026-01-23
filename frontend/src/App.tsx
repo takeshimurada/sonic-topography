@@ -1,9 +1,19 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './app/AppShell';
+import { MapPage } from './pages/MapPage';
+import { ArchivePage } from './pages/ArchivePage';
 
 const App: React.FC = () => {
   return (
-    <AppShell />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppShell />}>
+          <Route index element={<MapPage />} />
+          <Route path="archive" element={<ArchivePage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 };
 

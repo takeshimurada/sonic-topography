@@ -121,8 +121,8 @@ export const TimelineBar: React.FC = () => {
       .attr("height", d => height - yScale(d.count))
       .attr("fill", d => {
         const inViewport = d.year >= viewportYearRange[0] && d.year <= viewportYearRange[1];
-        if (inViewport) return "#6366F1";  // 뷰포트(곧 필터)에 보이는 영역
-        return "#1E293B";  // 보이지 않는 영역
+        if (inViewport) return "#000000";  // 뷰포트(곧 필터)에 보이는 영역
+        return "#D1D5DB";  // 보이지 않는 영역 (밝은 회색)
       })
       .attr("rx", 1)
       .style("transition", "fill 0.5s ease");  // 부드러운 색상 전환
@@ -136,7 +136,7 @@ export const TimelineBar: React.FC = () => {
       .attr("y", 0)
       .attr("width", xScale(viewportYearRange[0]))
       .attr("height", height)
-      .attr("fill", "rgba(0, 0, 0, 0.6)")
+      .attr("fill", "rgba(255, 255, 255, 0.7)")
       .attr("pointer-events", "none");
     
     // 오른쪽 어두운 영역
@@ -145,7 +145,7 @@ export const TimelineBar: React.FC = () => {
       .attr("y", 0)
       .attr("width", chartWidth - xScale(viewportYearRange[1]))
       .attr("height", height)
-      .attr("fill", "rgba(0, 0, 0, 0.6)")
+      .attr("fill", "rgba(255, 255, 255, 0.7)")
       .attr("pointer-events", "none");
     
     // 뷰포트 경계선 (왼쪽)
@@ -154,7 +154,7 @@ export const TimelineBar: React.FC = () => {
       .attr("y1", 0)
       .attr("x2", xScale(viewportYearRange[0]))
       .attr("y2", height)
-      .attr("stroke", "#10B981")
+      .attr("stroke", "#000000")
       .attr("stroke-width", 2)
       .attr("opacity", 0.8);
     
@@ -164,7 +164,7 @@ export const TimelineBar: React.FC = () => {
       .attr("y1", 0)
       .attr("x2", xScale(viewportYearRange[1]))
       .attr("y2", height)
-      .attr("stroke", "#10B981")
+      .attr("stroke", "#000000")
       .attr("stroke-width", 2)
       .attr("opacity", 0.8);
 
@@ -175,14 +175,14 @@ export const TimelineBar: React.FC = () => {
       {/* 장르 색상 인덱스 (축소) */}
       <div className="flex justify-between items-center px-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] text-slate-600 font-bold uppercase tracking-wider mr-1">Genres:</span>
+          <span className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mr-1">Genres:</span>
           {MAIN_GENRES.slice(0, 6).map(genre => (
             <div key={genre} className="flex items-center gap-1">
               <div 
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: GENRE_COLORS[genre] }}
               />
-              <span className="text-[8px] text-slate-500 font-medium">{genre}</span>
+              <span className="text-[8px] text-gray-600 font-medium">{genre}</span>
             </div>
           ))}
         </div>
@@ -193,19 +193,19 @@ export const TimelineBar: React.FC = () => {
           <select
             value={selectedYears.start}
             onChange={(e) => handleStartYearChange(parseInt(e.target.value))}
-            className="w-20 px-2 py-1 text-xs font-mono font-bold text-white bg-panel/80 border border-accent/30 rounded focus:ring-2 focus:ring-accent/50 outline-none cursor-pointer hover:bg-panel transition-colors"
+            className="w-20 px-2 py-1 text-xs font-mono font-semibold text-black bg-gray-50 border border-gray-300 rounded focus:ring-2 focus:ring-black/10 focus:border-black outline-none cursor-pointer hover:bg-gray-100 transition-colors"
             title="시작 연도"
           >
             {startYearOptions.map(year => (
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
-          <span className="text-slate-600 text-xs font-bold">—</span>
+          <span className="text-gray-400 text-xs font-bold">—</span>
           {/* 오른쪽: 선택된 시작 연도 ~ 2024 */}
           <select
             value={selectedYears.end}
             onChange={(e) => handleEndYearChange(parseInt(e.target.value))}
-            className="w-20 px-2 py-1 text-xs font-mono font-bold text-white bg-panel/80 border border-accent/30 rounded focus:ring-2 focus:ring-accent/50 outline-none cursor-pointer hover:bg-panel transition-colors"
+            className="w-20 px-2 py-1 text-xs font-mono font-semibold text-black bg-gray-50 border border-gray-300 rounded focus:ring-2 focus:ring-black/10 focus:border-black outline-none cursor-pointer hover:bg-gray-100 transition-colors"
             title="끝 연도"
           >
             {endYearOptions.map(year => (

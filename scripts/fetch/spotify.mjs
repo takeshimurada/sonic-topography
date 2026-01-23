@@ -153,39 +153,10 @@ function normalizeAlbum(rawAlbum, artist) {
 function buildQueries() {
   const queries = [];
   
-  // 🎯 다양한 연도와 태그 조합으로 광범위하게 수집
+  // 🎯 1955-1970: 클래식 명반 시대 (매 년도별 세밀 수집)
   
-  // 1970-1979: 매 년도별
-  for (let y = 1970; y <= 1979; y++) {
+  for (let y = 1962; y <= 1969; y++) {
     queries.push(`year:${y}`);
-  }
-  
-  // 1980-1989: 매 년도별
-  for (let y = 1980; y <= 1989; y++) {
-    queries.push(`year:${y}`);
-  }
-  
-  // 1990-2000: 2년 단위
-  for (let y = 1990; y <= 2000; y += 2) {
-    queries.push(`year:${y}-${Math.min(y+1, 2000)}`);
-  }
-  
-  // 2001-2010: 2년 단위
-  for (let y = 2001; y <= 2010; y += 2) {
-    queries.push(`year:${y}-${Math.min(y+1, 2010)}`);
-  }
-  
-  // 2011-2020: 2년 단위
-  for (let y = 2011; y <= 2020; y += 2) {
-    queries.push(`year:${y}-${Math.min(y+1, 2020)}`);
-  }
-  
-  // 추가: tag 기반 검색 (다양성 확보)
-  const tags = ["hipster", "new"];
-  for (let y = 1970; y <= 2020; y += 10) {
-    for (const tag of tags) {
-      queries.push(`year:${y}-${Math.min(y+9, 2020)} tag:${tag}`);
-    }
   }
 
   return queries;
@@ -199,7 +170,9 @@ async function main() {
   console.log('✅ 토큰 발급 완료\n');
 
   const seenAlbumIds = new Set();
+  const artistCache = new Map(); // 🎯 아티스트 캐싱
   let out = [];
+  let apiCallsSaved = 0; // 캐시로 절약된 API 호출 수
 
   // 🔄 기존 v0 파일이 있으면 로드 (append 모드)
   if (fs.existsSync(OUT_FILE)) {
@@ -229,9 +202,8 @@ async function main() {
     const q = queries[qi];
     console.log(`\n[쿼리 ${qi + 1}/${queries.length}] "${q}"`);
 
-    // 각 쿼리에서 offset을 조금씩만 훑어도 꽤 모임
-    // (Spotify search는 offset 최대 1000 제한도 있고 품질이 변동이라, "많은 쿼리 + 얕은 스캔"이 안정적)
-    for (let offset = 0; offset <= 400; offset += 50) {
+    // 인기도 높은 앨범 위주로 수집 (상위권만)
+    for (let offset = 0; offset <= 100; offset += 50) {
       if (out.length >= TARGET_ALBUMS) {
         console.log(`  🎯 목표 달성! (${out.length}개)`);
         break;
@@ -271,12 +243,19 @@ async function main() {
           continue;
         }
 
+        // 🎯 아티스트 캐싱: 이미 조회한 아티스트는 재사용
         let artist;
-        try {
-          artist = await getArtist(token, artistId);
-        } catch (e) {
-          // artist fetch 실패 시 스킵
-          continue;
+        if (artistCache.has(artistId)) {
+          artist = artistCache.get(artistId);
+          apiCallsSaved++;
+        } else {
+          try {
+            artist = await getArtist(token, artistId);
+            artistCache.set(artistId, artist); // 캐시에 저장
+          } catch (e) {
+            // artist fetch 실패 시 스킵
+            continue;
+          }
         }
 
         // ⭐ 인기도 필터 (오래된 클래식은 더 관대하게)
@@ -285,8 +264,9 @@ async function main() {
         }
         
         const releaseYear = album.release_date ? Number(String(album.release_date).slice(0, 4)) : null;
-        // 다양성을 위해 인기도 필터를 더 완화
-        const minPopularity = (releaseYear && releaseYear <= 1985) ? 20 : 
+        // 1955-1970 클래식 시대: 인기도 필터 완화
+        const minPopularity = (releaseYear && releaseYear <= 1970) ? 15 : 
+                              (releaseYear && releaseYear <= 1985) ? 20 : 
                               (releaseYear && releaseYear <= 1995) ? 30 : 35;
         
         if (artist.popularity && artist.popularity < minPopularity) {
@@ -299,10 +279,10 @@ async function main() {
         addedCount++;
       }
 
-      console.log(`  ✨ ${addedCount}개 추가 → 총 ${out.length}개 수집됨`);
+      console.log(`  ✨ ${addedCount}개 추가 → 총 ${out.length}개 수집됨 | 캐시 절약: ${apiCallsSaved}회`);
 
-      // polite delay
-      await sleep(120);
+      // polite delay (rate limit 방지)
+      await sleep(300);
     }
 
     if (out.length >= TARGET_ALBUMS) break;
@@ -321,6 +301,15 @@ async function main() {
   console.log(`\n🎼 데이터 품질:`);
   console.log(`   장르 있음: ${withGenre}/${out.length} (${Math.round(withGenre/out.length*100)}%)`);
   console.log(`   연도 있음: ${withYear}/${out.length} (${Math.round(withYear/out.length*100)}%)`);
+  
+  // 🎯 캐싱 효율성
+  const totalArtists = artistCache.size;
+  const totalApiCalls = out.length;
+  const cacheEfficiency = totalApiCalls > 0 ? Math.round(apiCallsSaved / totalApiCalls * 100) : 0;
+  console.log(`\n⚡ API 효율성:`);
+  console.log(`   고유 아티스트: ${totalArtists}명`);
+  console.log(`   캐시 절약: ${apiCallsSaved}회 (${cacheEfficiency}% 절감)`);
+  
   console.log(`\n🎉 Spotify 데이터 수집 성공!\n`);
 }
 

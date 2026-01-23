@@ -193,7 +193,7 @@ export const DetailPanel: React.FC = () => {
 
   if (!album) {
     return (
-      <div className="h-full w-full flex items-center justify-center text-slate-600 text-sm flex-col gap-4">
+      <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm flex-col gap-4">
         <Music size={48} className="opacity-20" />
         <p>Select an album from the map</p>
       </div>
@@ -201,11 +201,11 @@ export const DetailPanel: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-panel/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl overflow-hidden">
+    <div className="h-full flex flex-col bg-white border-l border-gray-200 shadow-lg overflow-hidden">
       
       {/* 1. Hero Header (더 큰 크기) */}
       <div className="relative h-48 sm:h-56 md:h-64 lg:h-72 w-full shrink-0 group">
-        <div className="absolute inset-0 bg-gradient-to-t from-panel via-panel/60 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent z-10" />
         <img 
           src={album.coverUrl} 
           alt={album.title} 
@@ -213,7 +213,7 @@ export const DetailPanel: React.FC = () => {
         />
         <button 
           onClick={() => selectAlbum(null)}
-          className="absolute top-4 right-4 z-20 p-2 bg-black/40 hover:bg-black/60 backdrop-blur rounded-full text-white transition-colors border border-white/10"
+          className="absolute top-4 right-4 z-20 p-2 bg-white/90 hover:bg-white backdrop-blur rounded-full text-black transition-colors border border-gray-200"
         >
           <X size={18} />
         </button>
@@ -230,20 +230,20 @@ export const DetailPanel: React.FC = () => {
                 {genre}
               </span>
             ))}
-            <span className="text-[10px] font-mono text-slate-300 border border-slate-700 px-2 py-0.5 rounded bg-black/40">
+            <span className="text-[10px] font-mono text-gray-700 border border-gray-300 px-2 py-0.5 rounded bg-white/90">
               {album.year}
             </span>
-            <span className="text-[10px] font-mono text-slate-300 border border-slate-700 px-2 py-0.5 rounded bg-black/40">
+            <span className="text-[10px] font-mono text-gray-700 border border-gray-300 px-2 py-0.5 rounded bg-white/90">
               {album.country}
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight mb-1 truncate">{album.title}</h2>
-          <p className="text-sm sm:text-base md:text-lg text-slate-300 font-medium truncate">{album.artist}</p>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black leading-tight mb-1 truncate drop-shadow-sm">{album.title}</h2>
+          <p className="text-sm sm:text-base md:text-lg text-gray-700 font-medium truncate drop-shadow-sm">{album.artist}</p>
         </div>
       </div>
 
       {/* 1.5. Action Buttons (한 줄로 압축) */}
-      <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/30">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-1.5">
           {/* Like */}
           <button
@@ -255,7 +255,7 @@ export const DetailPanel: React.FC = () => {
             className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-lg font-bold text-[10px] transition-all ${
               isLiked 
                 ? 'bg-gradient-to-r from-pink-500 to-red-500 text-white' 
-                : 'bg-slate-800/50 border border-slate-700 text-slate-300'
+                : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'
             } ${likeLoading ? 'opacity-50 cursor-wait' : ''}`}
           >
             <Heart size={12} fill={isLiked ? 'currentColor' : 'none'} strokeWidth={2.5} />
@@ -310,7 +310,7 @@ export const DetailPanel: React.FC = () => {
       </div>
 
       {/* 2. Navigation Tabs */}
-      <div className="flex items-center border-b border-slate-800">
+      <div className="flex items-center border-b border-gray-200">
         <TabButton id="context" label="Context" icon={BookOpen} active={activeTab} set={setActiveTab} />
         <TabButton id="tracks" label="Tracks" icon={ListMusic} active={activeTab} set={setActiveTab} />
         <TabButton id="credits" label="Credits" icon={Users} active={activeTab} set={setActiveTab} />
@@ -319,13 +319,13 @@ export const DetailPanel: React.FC = () => {
       </div>
 
       {/* 3. Content Area */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-space/30">
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-gray-50">
         
         {/* Loading State Overlay */}
         {loading && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-panel/80 backdrop-blur-sm">
-            <Sparkles className="text-accent animate-spin mb-3" size={32} />
-            <p className="text-sm text-accent font-medium animate-pulse">Analyzing Album...</p>
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+            <Sparkles className="text-black animate-spin mb-3" size={32} />
+            <p className="text-sm text-black font-medium animate-pulse">Analyzing Album...</p>
           </div>
         )}
 
@@ -337,24 +337,24 @@ export const DetailPanel: React.FC = () => {
             ) : (
               <>
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Quick Context</h3>
+                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Quick Context</h3>
                   <button 
                     onClick={() => setLang(l => l === 'en' ? 'ko' : 'en')}
-                    className="text-xs flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
+                    className="text-xs flex items-center gap-1 text-gray-500 hover:text-black transition-colors"
                   >
-                    <span className={lang === 'en' ? 'text-accent font-bold' : ''}>EN</span>
+                    <span className={lang === 'en' ? 'text-black font-bold' : ''}>EN</span>
                     <span>/</span>
-                    <span className={lang === 'ko' ? 'text-accent font-bold' : ''}>KO</span>
+                    <span className={lang === 'ko' ? 'text-black font-bold' : ''}>KO</span>
                   </button>
                 </div>
-                <div className="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl">
-                  <p className="text-slate-200 leading-relaxed text-sm">
+                <div className="bg-white border border-gray-200 p-4 rounded-lg">
+                  <p className="text-gray-800 leading-relaxed text-sm">
                     {lang === 'en' ? details.summaryEn : details.summaryKo}
                   </p>
                 </div>
                 
                 <div>
-                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Key Credits</h3>
+                   <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Key Credits</h3>
                    <div className="flex flex-wrap gap-2">
                       {details.credits.map((credit, i) => (
                         <button 
@@ -381,11 +381,11 @@ export const DetailPanel: React.FC = () => {
              ) : (
                <div className="space-y-1">
                  {details.tracklist.map((track, i) => (
-                   <div key={i} className="flex items-center py-3 px-3 hover:bg-white/5 rounded-lg group transition-colors cursor-default">
-                     <span className="w-8 text-right mr-4 text-slate-600 font-mono text-sm group-hover:text-accent">{i + 1}</span>
-                     <span className="text-slate-300 font-medium text-sm group-hover:text-white">{track}</span>
+                   <div key={i} className="flex items-center py-3 px-3 hover:bg-gray-100 rounded-lg group transition-colors cursor-default">
+                     <span className="w-8 text-right mr-4 text-gray-500 font-mono text-sm group-hover:text-black">{i + 1}</span>
+                     <span className="text-gray-700 font-medium text-sm group-hover:text-black">{track}</span>
                      <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Music size={14} className="text-slate-500" />
+                        <Music size={14} className="text-gray-400" />
                      </div>
                    </div>
                  ))}
@@ -402,11 +402,11 @@ export const DetailPanel: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {details.creditDetails?.map((credit, i) => (
-                  <div key={i} className="bg-slate-800/30 border border-slate-700/50 p-5 rounded-xl hover:border-slate-600 transition-colors">
+                  <div key={i} className="bg-white border border-gray-200 p-5 rounded-lg hover:border-gray-300 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h4 className="text-white font-bold text-base">{credit.name}</h4>
-                        <span className="text-accent text-xs font-medium uppercase tracking-wider">{credit.role}</span>
+                        <h4 className="text-black font-bold text-base">{credit.name}</h4>
+                        <span className="text-gray-600 text-xs font-medium uppercase tracking-wider">{credit.role}</span>
                       </div>
                       <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
                         <Users size={18} className="text-slate-400" />
@@ -431,9 +431,9 @@ export const DetailPanel: React.FC = () => {
               <EmptyState onAction={handleResearch} label="Find Reviews" />
             ) : (
               details.reviews.map((review, i) => (
-                <div key={i} className="bg-slate-800/30 border border-slate-700/50 p-4 rounded-xl hover:border-slate-600 transition-colors">
+                <div key={i} className="bg-white border border-gray-200 p-4 rounded-lg hover:border-gray-300 hover:shadow-md transition-all">
                   <div className="flex justify-between items-start mb-3">
-                    <span className="text-accent text-xs font-bold uppercase">{review.source}</span>
+                    <span className="text-black text-xs font-bold uppercase">{review.source}</span>
                     <a 
                       href={review.url} 
                       target="_blank" 
@@ -517,24 +517,24 @@ const TabButton = ({ id, label, icon: Icon, active, set }: { id: Tab, label: str
     onClick={() => set(id)}
     className={`flex-1 py-2.5 flex flex-col items-center justify-center gap-1 text-xs font-bold transition-all duration-300 border-b-2 group ${
       active === id 
-        ? 'border-accent text-accent bg-accent/10' 
-        : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-white/5 hover:border-slate-700'
+        ? 'border-black text-black bg-gray-100' 
+        : 'border-transparent text-gray-500 hover:text-black hover:bg-gray-50'
     }`}
   >
-    <Icon size={14} className={`${active === id ? 'text-accent' : 'text-slate-600 group-hover:text-slate-400'} transition-colors`} />
+    <Icon size={14} className={`${active === id ? 'text-black' : 'text-gray-400 group-hover:text-gray-600'} transition-colors`} />
     <span className="text-[9px] uppercase tracking-wide">{label}</span>
   </button>
 );
 
 const EmptyState = ({ onAction, label }: { onAction: () => void, label: string }) => (
-  <div className="h-60 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/20">
-    <Sparkles className="text-slate-700 mb-3" size={32} />
-    <p className="text-slate-500 text-sm mb-4">Content not generated yet.</p>
+  <div className="h-60 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-100">
+    <Sparkles className="text-gray-400 mb-3" size={32} />
+    <p className="text-gray-500 text-sm mb-4">Content not generated yet.</p>
     <button 
       onClick={onAction}
-      className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-full font-medium text-sm transition-all border border-slate-700 hover:border-slate-500"
+      className="flex items-center gap-2 px-5 py-2.5 bg-black hover:bg-gray-800 text-white rounded-full font-medium text-sm transition-all"
     >
-      <Sparkles size={14} className="text-accent" />
+      <Sparkles size={14} className="text-white" />
       {label}
     </button>
   </div>

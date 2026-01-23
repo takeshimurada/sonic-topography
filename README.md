@@ -10,13 +10,62 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)](https://www.postgresql.org/)
 [![Deck.gl](https://img.shields.io/badge/Deck.gl-8.9-ff69b4)](https://deck.gl/)
 
-**Version 4.1.0** | 2026-01-21
+**Version 4.5.0** | 2026-01-23
 
 </div>
 
 ---
 
 ## 📝 Changelog
+
+### Version 4.5.0 (2026-01-23)
+
+#### 🎨 대규모 UI/UX 개편 - 라이트 테마 적용
+- ✅ **디자인 시스템 전환**: 다크 네온 → 모던 라이트 테마
+  - 참고 사이트: https://koreanmusicawards.com/archive/
+  - 색상: 검은색 텍스트, 흰색 배경, 회색 보더
+  - 깔끔하고 미니멀한 디자인 일관성
+- ✅ **Archive 페이지 구현**:
+  - 모든 앨범을 그리드 형태로 표시
+  - 장르, 연도, 국가, 정렬 필터 지원
+  - 무한 스크롤 (50개씩 로드)
+  - 앨범 클릭 시 DetailPanel 표시
+  - 성능 최적화 (React.memo, progressive loading)
+
+#### 🗺️ Map Canvas 개선
+- ✅ **라이트 테마 적용**:
+  - 흰색 배경 (`clearColor: [1, 1, 1, 1]`)
+  - 검은색 텍스트 및 라인
+  - 투명한 가장자리 (블러 효과 제거)
+- ✅ **노드 인터랙션 개선**:
+  - 클릭 즉시 크기 1.8배 확대 + 검은색 테두리 (0.5px)
+  - 드래그/줌 시 DetailPanel 자동 닫기
+  - DetailPanel 닫힐 때 노드 원상태 복구
+  - 즉각 반응 (애니메이션 제거, useMemo dependency 최적화)
+
+#### 🎯 UI 컴포넌트 개선
+- ✅ **SearchBar & Library**:
+  - 높이 통일 (40px)
+  - 검색창 확장 시 가로만 확대
+  - 배경 클릭으로 자동 닫기
+  - "My" → "Library"로 명칭 변경
+- ✅ **Library Panel 리디자인**:
+  - 모던하고 시크한 레이아웃
+  - 컴팩트한 카드 디자인
+  - 검은색 액센트 컬러
+- ✅ **DetailPanel**:
+  - 배경 클릭으로 닫기
+  - 라이트 테마 적용
+- ✅ **모든 패널 일관성**:
+  - Navigation, TimelineBar, ForYouPanel 등 전체 라이트 테마 통일
+
+#### 🚀 성능 최적화
+- ✅ Archive 페이지 progressive loading
+- ✅ React.memo로 AlbumCard 최적화
+- ✅ useMemo dependency 정확성 개선
+- ✅ 무한 스크롤 IntersectionObserver 구현
+
+---
 
 ### Version 4.1.0 (2026-01-21)
 

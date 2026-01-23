@@ -277,7 +277,7 @@ async function queryDiscogs(artistName, albumTitle) {
 // ============================================
 
 const CODE_TO_NAME = {
-  'KR': 'South Korea', 'US': 'United States', 'GB': 'United Kingdom',
+  'KR': 'South Korea', 'US': 'United States', 'UK': 'United Kingdom',
   'CA': 'Canada', 'MX': 'Mexico', 'FR': 'France', 'DE': 'Germany',
   'IT': 'Italy', 'ES': 'Spain', 'JP': 'Japan', 'CN': 'China',
   'BR': 'Brazil', 'AR': 'Argentina', 'AU': 'Australia', 'SE': 'Sweden',

@@ -108,7 +108,7 @@ const MARKET_TO_REGION = {
   "MX": "North America",
   
   // Europe
-  "GB": "Europe", "UK": "Europe",
+  "UK": "Europe",
   "FR": "Europe", "DE": "Europe", "IT": "Europe", "ES": "Europe",
   "NL": "Europe", "BE": "Europe", "CH": "Europe", "AT": "Europe",
   "SE": "Europe", "NO": "Europe", "DK": "Europe", "FI": "Europe",
@@ -179,8 +179,7 @@ const MARKET_TO_COUNTRY = {
   "US": { name: "United States", code: "US" },
   "CA": { name: "Canada", code: "CA" },
   "MX": { name: "Mexico", code: "MX" },
-  "GB": { name: "United Kingdom", code: "GB" },
-  "UK": { name: "United Kingdom", code: "GB" },
+  "UK": { name: "United Kingdom", code: "UK" },
   "FR": { name: "France", code: "FR" },
   "DE": { name: "Germany", code: "DE" },
   "IT": { name: "Italy", code: "IT" },
