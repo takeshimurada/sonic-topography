@@ -141,7 +141,7 @@ if [ "$ALBUM_COUNT" -eq "0" ]; then
   echo "   Option 1: Restore from backup (fastest)"
   echo "   ─────────────────────────────────────────────"
   echo "   If you have a backup file:"
-  echo "     ./scripts/db/restore.sh backup_name"
+  echo "     ./scripts/db/restore/restore.sh backup_name"
   echo ""
   echo "   Option 2: Collect from MusicBrainz (recommended, ~10 minutes)"
   echo "   ─────────────────────────────────────────────────────────────"

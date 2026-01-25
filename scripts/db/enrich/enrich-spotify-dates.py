@@ -5,7 +5,7 @@ album_groups 테이블에서 earliest_release_date가 NULL인 앨범들을 찾�
 Spotify API로 발매일을 가져와서 업데이트합니다.
 
 Usage:
-  docker exec sonic_backend python scripts/db/enrich_spotify_dates.py
+  docker exec sonic_backend python scripts/db/enrich/enrich-spotify-dates.py
 """
 
 import asyncio

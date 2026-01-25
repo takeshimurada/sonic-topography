@@ -2,7 +2,7 @@
 Seed roles dictionary.
 
 Usage:
-  docker exec sonic_backend python scripts/db/seed_roles.py
+  docker exec sonic_backend python scripts/db/seed/seed-roles.py
 """
 
 import asyncio

@@ -7,7 +7,7 @@ This script:
 3) Seeds roles (minimal).
 
 Usage:
-  docker exec sonic_backend python scripts/db/migrate_to_target_schema.py
+  docker exec sonic_backend python scripts/db/migrate/migrate-to-target-schema.py
 """
 
 import asyncio

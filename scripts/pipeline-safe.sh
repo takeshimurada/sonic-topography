@@ -19,6 +19,19 @@ npm run pipeline:all && \
 npm run fetch:metadata && \
 npm run metadata:import || PIPELINE_EXIT_CODE=$?
 
+# Render DB sync (only when pipeline succeeds)
+if [ $PIPELINE_EXIT_CODE -eq 0 ]; then
+    echo ""
+    echo "📦 Render DB backup (pre-sync)..."
+    bash scripts/db/backup/backup-render.sh || echo "⚠️ Render backup failed!"
+    echo ""
+    echo "☁️  Syncing Render DB..."
+    bash scripts/db/maintenance/sync-render.sh || echo "⚠️ Render sync failed!"
+else
+    echo ""
+    echo "⚠️ Pipeline failed. Skipping Render sync."
+fi
+
 # 항상 백업 (성공/실패 무관)
 echo ""
 echo "📦 Final backup (always runs)..."

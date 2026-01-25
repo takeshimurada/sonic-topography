@@ -26,7 +26,7 @@
 - ✅ **단일 박스 스타일**: 이중 박스 구조 정리
 
 #### 🗄️ 데이터 정리
-- ✅ **중복 앨범 정리 SQL 추가**: `scripts/db/dedupe_album_groups.sql`
+- ✅ **중복 앨범 정리 SQL 추가**: `scripts/db/maintenance/dedupe-album-groups.sql`
 - ✅ **정리 전 백업 생성**: `backups/dedupe_20260125.sql.gz`
 
 ### Version 4.5.0 (2026-01-23)
@@ -113,14 +113,14 @@
 - ✅ **역할 정규화**: `roles` 테이블 기반 크레딧 시스템 (`album_credits`, `track_credits`)
 - ✅ **네임스페이스 ID 전략**: `spotify:album:<id>`, `spotify:artist:<id>`, `local:creator:<uuid>` 형식
 - ✅ **트랙 레벨 크레딧**: 각 트랙별 프로듀서/작곡가/작사가 분리 저장
-- ✅ **마이그레이션 스크립트**: 기존 데이터 자동 이관 (`scripts/db/migrate_to_target_schema.py`)
-- ✅ **스키마 검증 도구**: 데이터 무결성 확인 (`scripts/db/validate_target_schema.py`)
+- ✅ **마이그레이션 스크립트**: 기존 데이터 자동 이관 (`scripts/db/migrate/migrate-to-target-schema.py`)
+- ✅ **스키마 검증 도구**: 데이터 무결성 확인 (`scripts/db/migrate/validate-target-schema.py`)
 
 #### 🎤 메타데이터 임포트 시스템
 - ✅ **아티스트 정보**: Spotify API 기반 `creators` + `creator_spotify_profile` 임포트
 - ✅ **협업 관계**: 메인/피처링 아티스트 → `album_credits` 자동 매핑
 - ✅ **크레딧 정보**: MusicBrainz 기반 프로듀서/엔지니어/작사가 정보 수집 및 임포트
-- ✅ **역할 시드**: 14개 기본 역할 자동 생성 (`scripts/db/seed_roles.py`)
+- ✅ **역할 시드**: 14개 기본 역할 자동 생성 (`scripts/db/seed/seed-roles.py`)
 - ✅ **배치 임포트**: 대용량 데이터 효율적 처리 (1000+ 앨범, 600+ 아티스트)
 
 #### 📊 Spotify 데이터 통합
@@ -130,7 +130,7 @@
 
 #### 🔧 개발 도구 개선
 - ✅ **메타데이터 파이프라인**: `npm run fetch:metadata` → `npm run metadata:import` 원클릭 실행
-- ✅ **DB 임포트 스크립트**: `import_album_groups.py`, `import_metadata.py` 분리
+- ✅ **DB 임포트 스크립트**: `scripts/db/import/import-album-groups.py`, `scripts/db/import/import-metadata.py` 분리
 - ✅ **에러 처리 강화**: FK 제약 조건 자동 처리, 누락 데이터 스킵
 
 ---
@@ -139,7 +139,7 @@
 
 #### 🎨 앨범 커버 이미지 시스템
 - ✅ MusicBrainz 앨범에 Cover Art Archive 통합
-- ✅ 기존 DB 앨범 커버 자동 업데이트 스크립트 (`scripts/db/update_covers.py`)
+- ✅ 기존 DB 앨범 커버 자동 업데이트 스크립트 (`scripts/db/covers/update-covers.py`)
 - ✅ 앨범 커버 통계 및 관리 도구
 
 #### 🗺️ UI/UX 개선
@@ -840,7 +840,7 @@ GET /health
 ```bash
 git clone <repository-url>
 cd music-mapmap-1
-chmod +x setup.sh && ./setup.sh
+chmod +x scripts/ops/setup.sh && ./scripts/ops/setup.sh
 ```
 
 이 스크립트가 자동으로:
@@ -926,7 +926,7 @@ npm run dev
 **옵션 A: 백업 복원 (가장 빠름, 백업 파일이 있는 경우)**
 
 ```bash
-./scripts/db/restore.sh backup_name
+./scripts/db/restore/restore.sh backup_name
 ```
 
 **옵션 B: MusicBrainz 수집 (권장, ~10분, 500개 앨범)**
@@ -958,7 +958,7 @@ npm run fetch:spotify
 **백업 생성:**
 
 ```bash
-./scripts/db/backup.sh my_backup_name
+./scripts/db/backup/backup.sh my_backup_name
 # 파일 생성: ./backups/my_backup_name.sql.gz
 ```
 
@@ -970,13 +970,13 @@ npm run fetch:spotify
 **백업 복원:**
 
 ```bash
-./scripts/db/restore.sh my_backup_name
+./scripts/db/restore/restore.sh my_backup_name
 ```
 
 **다른 컴퓨터로 이동:**
 
 1. `./backups/` 폴더를 복사
-2. 새 환경에서 `./scripts/db/restore.sh backup_name` 실행
+2. 새 환경에서 `./scripts/db/restore/restore.sh backup_name` 실행
 
 > 💡 **Tip**: Git에 작은 백업 파일 포함 가능 (권장: < 50MB)
 
@@ -1113,7 +1113,7 @@ npm run pipeline:validate
 
 ### Step 2: 장르 보강 (선택)
 
-**스크립트:** `scripts/pipeline/enrich_genre.mjs`
+**스크립트:** `scripts/pipeline/enrich-genre.mjs`
 
 **역할:**
 - MusicBrainz/Discogs API로 장르 정보 추가 보강
@@ -1131,7 +1131,7 @@ npm run pipeline:enrich-genre
 
 ### Step 3: 국가 정보 보강 ⭐
 
-**스크립트:** `scripts/pipeline/enrich_country.mjs`
+**스크립트:** `scripts/pipeline/enrich-country.mjs`
 
 **역할:**
 1. **MusicBrainz API (1차)**: 아티스트 출신 국가 조회
@@ -1167,7 +1167,7 @@ npm run pipeline:report
 
 ### Step 4: PostgreSQL 임포트
 
-**스크립트:** `backend/scripts/import_albums_v3.py`
+**스크립트:** `scripts/db/import/import.py`
 
 **역할:**
 - v3.json → PostgreSQL `albums` 테이블 임포트
@@ -1189,7 +1189,7 @@ npm run db:classics
 
 # 또는 수동 실행
 docker cp out/albums_spotify_v3.json sonic_backend:/out/albums_spotify_v3.json
-docker exec sonic_backend python scripts/import_albums_v3.py
+docker exec sonic_backend python scripts/db/import/import.py
 ```
 
 **결과 확인:**
@@ -1397,11 +1397,6 @@ backend/
 │   ├── database.py          # DB 연결 설정
 │   └── service_gemini.py    # Gemini AI 서비스
 ├── scripts/
-│   ├── import_albums_v3.py        # DB 임포트
-│   ├── seed_albums.py             # 샘플 데이터 생성
-│   ├── insert_classic_albums.py   # 클래식 명반 삽입
-│   ├── fetch_from_lastfm.py       # Last.fm API 수집
-│   ├── fetch_from_musicbrainz.py  # MusicBrainz API 수집
 │   ├── test_api.py                # API 테스트
 │   └── debug_api.py               # API 디버그
 ├── Dockerfile
@@ -1965,21 +1960,7 @@ docker-compose up -d
 ### 프로젝트 구조
 
 ```
-music-mapmap-1/
-├── app/
-│   └── AppShell.tsx           # 앱 메인 레이아웃
-├── components/                # React 컴포넌트
-│   ├── DetailPanel/           # 앨범 상세 패널
-│   ├── ForYouPanel/           # 좋아요 목록 패널
-│   ├── MapCanvas/             # 2D 맵 시각화 (Deck.gl)
-│   ├── MyLogsPanel/           # 개인 로그 패널
-│   ├── MyPanel/               # My 패널 (통합)
-│   ├── SearchBar/             # 검색 바
-│   └── TimelineBar/           # 연도 필터 타임라인
-├── state/
-│   └── store.ts               # Zustand 전역 상태 관리
-├── services/
-│   └── geminiService.ts       # Gemini AI 서비스
+music-mapmap/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py            # FastAPI 메인
@@ -1988,41 +1969,38 @@ music-mapmap-1/
 │   │   ├── database.py        # DB 연결
 │   │   └── service_gemini.py  # AI 서비스
 │   └── scripts/
-│       ├── import_albums_v3.py        # DB 임포트
-│       ├── seed_albums.py             # 샘플 데이터
-│       ├── insert_classic_albums.py   # 클래식 명반
-│       ├── fetch_from_lastfm.py       # Last.fm 수집
-│       ├── fetch_from_musicbrainz.py  # MusicBrainz 수집
 │       ├── test_api.py                # API 테스트
 │       └── debug_api.py               # API 디버그
+├── frontend/
+│   ├── src/
+│   │   ├── app/               # AppShell 등 레이아웃
+│   │   ├── components/        # UI 컴포넌트
+│   │   ├── pages/             # 페이지
+│   │   ├── state/             # Zustand 스토어
+│   │   └── services/          # 클라이언트 서비스
+│   ├── index.html
+│   └── vite.config.ts
 ├── scripts/
-│   ├── fetchers/              # 🆕 데이터 수집 스크립트
-│   │   ├── spotify.mjs            # Spotify API 앨범 수집
-│   │   └── playlists.mjs          # 플레이리스트 기반 수집
-│   └── pipeline/          # 🆕 데이터 파이프라인
-│       ├── normalize.mjs          # 데이터 정규화
-│       ├── validate.mjs           # 데이터 검증
-│       ├── enrich_genre.mjs       # 장르 정보 보강
-│       ├── enrich_country.mjs     # 국가 정보 보강
-│       └── report_country.mjs     # 보강 결과 리포트
-├── tests/                     # 🆕 테스트 파일
-│   ├── test-frontend.html
-│   ├── test-gemini-models.html
-│   ├── list-models.html
-│   └── test-data.json
-├── out/                       # 데이터 출력 폴더
-│   ├── albums_spotify_v0.json     # Raw 데이터
-│   ├── albums_spotify_v1.json     # 정규화됨
-│   ├── albums_spotify_v2.json     # 장르 보강
-│   ├── albums_spotify_v3.json     # 국가 보강 (최종)
-│   └── report_step3_country.json  # 리포트
-├── public/                    # Public 에셋
-├── types.ts                   # TypeScript 타입 정의
-├── index.tsx                  # 앱 엔트리 포인트
-├── App.tsx                    # 앱 루트 컴포넌트
+│   ├── db/                     # DB 관련 스크립트
+│   │   ├── backup/
+│   │   ├── restore/
+│   │   ├── import/
+│   │   ├── covers/
+│   │   ├── enrich/
+│   │   ├── migrate/
+│   │   ├── seed/
+│   │   └── maintenance/
+│   ├── fetch/                  # 데이터 수집 스크립트
+│   ├── pipeline/               # 데이터 파이프라인
+│   ├── ops/                    # 운영/유틸 스크립트
+│   └── pipeline-safe.sh        # 안전 파이프라인 실행
+├── data/
+│   └── metadata.json           # 수집 메타데이터
+├── docs/                       # 문서 모음
+├── backups/                    # DB 백업 저장소
 ├── docker-compose.yml         # Docker 설정
 ├── package.json               # NPM 패키지 설정
-├── vite.config.ts             # Vite 설정
+├── db.Dockerfile
 └── README.md                  # 📚 이 문서
 ```
 

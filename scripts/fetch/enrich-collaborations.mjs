@@ -7,7 +7,7 @@
  * - 앨범-아티스트 관계 데이터 생성
  * 
  * Usage:
- *   node scripts/fetch/enrich_collaborations.mjs
+ *   node scripts/fetch/enrich-collaborations.mjs
  */
 
 import fs from "fs";

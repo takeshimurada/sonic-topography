@@ -1,13 +1,13 @@
 #!/bin/bash
 # DB 복원 스크립트
-# 사용법: ./scripts/db/restore.sh [backup_name]
+# 사용법: ./scripts/db/restore/restore.sh [backup_name]
 
 set -e
 
 if [ -z "$1" ]; then
   echo "❌ Error: Backup name required"
   echo ""
-  echo "Usage: ./scripts/db/restore.sh <backup_name>"
+  echo "Usage: ./scripts/db/restore/restore.sh <backup_name>"
   echo ""
   echo "Available backups:"
   ls -lh ./backups/*.sql.gz 2>/dev/null || echo "  (no backups found)"

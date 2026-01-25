@@ -4,7 +4,7 @@
 Spotify에서 발매일이 없는 앨범에 대해 MusicBrainz와 Discogs에서 발매일을 가져옴
 
 Usage:
-  docker exec sonic_backend python scripts/db/enrich_release_dates.py
+  docker exec sonic_backend python scripts/db/enrich/enrich-release-dates.py
 """
 
 import asyncio

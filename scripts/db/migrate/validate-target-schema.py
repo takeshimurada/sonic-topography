@@ -8,7 +8,7 @@ Checks:
 4) No raw artist ids remain in creator_id_map usage tables.
 
 Usage:
-  docker exec sonic_backend python scripts/db/validate_target_schema.py
+  docker exec sonic_backend python scripts/db/migrate/validate-target-schema.py
 """
 
 import asyncio

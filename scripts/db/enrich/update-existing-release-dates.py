@@ -4,7 +4,7 @@
 Spotify JSON 파일에서 releaseDate를 읽어서 기존 DB 레코드를 업데이트
 
 Usage:
-  docker exec sonic_backend python scripts/db/update_existing_release_dates.py
+  docker exec sonic_backend python scripts/db/enrich/update-existing-release-dates.py
 """
 
 import json

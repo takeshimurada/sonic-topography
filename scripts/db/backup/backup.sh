@@ -1,6 +1,6 @@
 #!/bin/bash
 # DB 백업 스크립트
-# 사용법: ./scripts/db/backup.sh [backup_name]
+# 사용법: ./scripts/db/backup/backup.sh [backup_name]
 
 set -e
 
@@ -27,4 +27,4 @@ echo "📦 File: ${BACKUP_FILE_GZ}"
 echo "📊 Size: $(du -h "${BACKUP_FILE_GZ}" | cut -f1)"
 echo ""
 echo "💡 To restore this backup:"
-echo "   ./scripts/db/restore.sh ${BACKUP_NAME}"
+echo "   ./scripts/db/restore/restore.sh ${BACKUP_NAME}"

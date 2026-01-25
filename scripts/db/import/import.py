@@ -2,8 +2,7 @@
 Step 4: v3 데이터를 PostgreSQL DB에 임포트하는 스크립트
 
 Usage:
-  cd backend
-  python scripts/import_albums_v3.py
+  docker exec sonic_backend python scripts/db/import/import.py
 """
 
 import json

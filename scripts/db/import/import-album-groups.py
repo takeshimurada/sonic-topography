@@ -2,7 +2,7 @@
 Import v3 album data into album_groups + map_nodes + releases.
 
 Usage:
-  docker exec sonic_backend python scripts/db/import_album_groups.py
+  docker exec sonic_backend python scripts/db/import/import-album-groups.py
 """
 
 import json

@@ -335,7 +335,7 @@ WHERE ac.person_name = 'George Martin'
 ### Phase 1 실패
 ```bash
 # Spotify API 인증 확인
-node test_spotify_auth.mjs
+node scripts/ops/test-spotify-auth.mjs
 
 # .env 파일 확인
 cat .env
@@ -362,7 +362,7 @@ docker-compose logs backend
 
 # 직접 실행
 docker exec -it sonic_backend bash
-python scripts/db/import_metadata.py
+python scripts/db/import/import-metadata.py
 ```
 
 ---

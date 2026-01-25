@@ -8,7 +8,7 @@
  * - 결과를 artists.json으로 저장
  * 
  * Usage:
- *   node scripts/fetch/enrich_artists.mjs
+ *   node scripts/fetch/enrich-artists.mjs
  */
 
 import fs from "fs";

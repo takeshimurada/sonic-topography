@@ -54,7 +54,7 @@ echo "✅ File synced successfully"
 # Step 5: Import to Database
 echo ""
 echo "💾 Step 5: Importing to database..."
-docker exec sonic_backend python scripts/import_albums_v3.py
+docker exec sonic_backend python scripts/db/import/import.py
 
 # Step 6: Final Statistics
 echo ""

@@ -7,7 +7,7 @@
  * - album_credits.json으로 저장
  * 
  * Usage:
- *   node scripts/fetch/enrich_credits.mjs
+ *   node scripts/fetch/enrich-credits.mjs
  */
 
 import fs from "fs";

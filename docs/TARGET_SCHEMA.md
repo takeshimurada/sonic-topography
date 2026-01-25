@@ -33,9 +33,8 @@ This document summarizes the refactored schema and migration outputs.
 
 ## Migration Scripts
 
-- `scripts/db/migrate_to_target_schema.py`
-- `scripts/db/seed_roles.py`
-- `scripts/db/import_album_groups.py`
-- `scripts/db/import_metadata.py`
-- `scripts/db/validate_target_schema.py`
-
+- `scripts/db/migrate/migrate-to-target-schema.py`
+- `scripts/db/seed/seed-roles.py`
+- `scripts/db/import/import-album-groups.py`
+- `scripts/db/import/import-metadata.py`
+- `scripts/db/migrate/validate-target-schema.py`

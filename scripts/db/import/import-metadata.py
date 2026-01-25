@@ -4,7 +4,7 @@
 아티스트, 협업 관계, 크레딧 정보를 DB에 임포트
 
 Usage:
-  docker exec sonic_backend python scripts/db/import_metadata.py
+  docker exec sonic_backend python scripts/db/import/import-metadata.py
 """
 
 import json
