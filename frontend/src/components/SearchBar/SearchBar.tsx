@@ -5,7 +5,7 @@ import { Album } from '../../types';
 
 type SearchBarVariant = 'default' | 'embedded';
 
-export const SearchBar: React.FC<{ variant?: SearchBarVariant }> = ({ variant = 'default' }) => {
+export const SearchBar: React.FC<{ variant?: SearchBarVariant; autoFocus?: boolean }> = ({ variant = 'default', autoFocus = false }) => {
   const { searchQuery, setSearchQuery, selectAlbum, albums, setViewport, setBrushedAlbums } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Album[]>([]);
@@ -13,6 +13,7 @@ export const SearchBar: React.FC<{ variant?: SearchBarVariant }> = ({ variant = 
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<{ type: 'album' | 'artist', data: Album | string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Initialize Recent Searches
   useEffect(() => {
@@ -57,6 +58,14 @@ export const SearchBar: React.FC<{ variant?: SearchBarVariant }> = ({ variant = 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    setIsOpen(true);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  }, [autoFocus]);
 
   const logSearchEvent = async (query: string) => {
     try {
@@ -146,6 +155,7 @@ export const SearchBar: React.FC<{ variant?: SearchBarVariant }> = ({ variant = 
         </div>
         <input
           type="text"
+          ref={inputRef}
           className={inputClassName}
           placeholder="앨범/아티스트 검색..."
           value={searchQuery}
@@ -346,13 +356,21 @@ export const SearchBar: React.FC<{ variant?: SearchBarVariant }> = ({ variant = 
                   </div>
                 )}
               </div>
-            ) : searchQuery.length > 1 && (
+            ) : searchQuery.length > 1 ? (
               <div className="p-8 text-center">
                 <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-100">
                    <Search size={20} className="text-gray-300" />
                 </div>
                 <p className="text-gray-500 text-xs font-medium">"{searchQuery}" 없음</p>
                 <p className="text-gray-400 text-[10px] mt-1">다른 검색어를 시도해보세요</p>
+              </div>
+            ) : (
+              <div className="p-5 text-center">
+                <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-gray-100">
+                  <Search size={16} className="text-gray-300" />
+                </div>
+                <p className="text-gray-500 text-xs font-medium">검색어를 입력해 주세요</p>
+                <p className="text-gray-400 text-[10px] mt-1">앨범 또는 아티스트 이름</p>
               </div>
             )}
           </div>

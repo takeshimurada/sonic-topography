@@ -33,8 +33,8 @@ interface AppState {
   setViewport: (viewport: Viewport | ((prev: Viewport) => Viewport)) => void;
 }
 
-const MIN_YEAR = 1960;
-const MAX_YEAR = 2024;
+const MIN_YEAR = 1950;
+const MAX_YEAR = 2026;
 
 const ALL_REGIONS: Region[] = ['North America', 'Europe', 'Asia', 'South America', 'Caribbean', 'Oceania', 'Africa'];
 

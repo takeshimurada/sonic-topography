@@ -8,6 +8,9 @@ echo "========================"
 echo ""
 echo "📦 Step 0: Pre-pipeline backup..."
 npm run db:backup || echo "⚠️ Pre-backup failed, continuing..."
+echo ""
+echo "📦 Step 0b: Pre-pipeline Render backup..."
+bash scripts/db/backup/backup-render.sh || echo "⚠️ Render pre-backup failed, continuing..."
 
 # Pipeline 실행 (에러 캡처)
 echo ""
@@ -22,9 +25,6 @@ npm run metadata:import || PIPELINE_EXIT_CODE=$?
 # Render DB sync (only when pipeline succeeds)
 if [ $PIPELINE_EXIT_CODE -eq 0 ]; then
     echo ""
-    echo "📦 Render DB backup (pre-sync)..."
-    bash scripts/db/backup/backup-render.sh || echo "⚠️ Render backup failed!"
-    echo ""
     echo "☁️  Syncing Render DB..."
     bash scripts/db/maintenance/sync-render.sh || echo "⚠️ Render sync failed!"
 else
@@ -36,6 +36,9 @@ fi
 echo ""
 echo "📦 Final backup (always runs)..."
 npm run db:backup || echo "⚠️ Final backup failed!"
+echo ""
+echo "📦 Final Render backup (always runs)..."
+bash scripts/db/backup/backup-render.sh || echo "⚠️ Render final backup failed!"
 
 # 결과 출력
 echo ""

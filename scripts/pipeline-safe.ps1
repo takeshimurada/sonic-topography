@@ -34,6 +34,7 @@ function Backup-RenderDb($rootDir) {
   }
 
   $backupDir = Join-Path $rootDir "backups\render"
+  $latestFile = Join-Path $rootDir "backups\latest.sql.gz"
   $stampDate = Get-Date -Format "yyyyMMdd"
   $stampTime = Get-Date -Format "HHmmss"
   $targetDir = Join-Path $backupDir $stampDate
@@ -45,7 +46,7 @@ function Backup-RenderDb($rootDir) {
   $pgUrl = $env:RENDER_DATABASE_URL -replace "^postgresql\+asyncpg://", "postgresql://"
   Write-Host "Backing up Render DB..."
 
-  $dumpCmd = @("run", "-i", "--rm", "postgres:15", "pg_dump", $pgUrl)
+  $dumpCmd = @("run", "-i", "--rm", "postgres:18", "pg_dump", "--no-owner", "--no-privileges", $pgUrl)
   $proc = Start-Process -FilePath "docker" -ArgumentList $dumpCmd -NoNewWindow -RedirectStandardOutput $tmpFile -PassThru
   $proc.WaitForExit()
   if ($proc.ExitCode -ne 0) {
@@ -62,6 +63,8 @@ function Backup-RenderDb($rootDir) {
   Remove-Item -Force $tmpFile
 
   Write-Host "Render backup saved: $outFile"
+  Copy-Item -Force $outFile $latestFile
+  Write-Host "Render backup copied to: $latestFile"
 
   $allBackups = Get-ChildItem -Path $backupDir -Filter "*.sql.gz" -Recurse | Sort-Object LastWriteTime -Descending
   if ($allBackups.Count -gt 10) {
@@ -116,6 +119,8 @@ if (-not $renderSyncRequired) {
 
 Write-Section "Step 0: Pre-pipeline backup..."
 try { & npm run db:backup | Out-Host } catch { Write-Host "Pre-backup failed, continuing..." }
+Write-Section "Step 0b: Pre-pipeline Render backup..."
+try { Backup-RenderDb $rootDir } catch { Write-Host "Render pre-backup failed: $($_.Exception.Message)" }
 
 $pipelineExitCode = 0
 Write-Section "Running pipeline..."
@@ -136,12 +141,9 @@ foreach ($step in $steps) {
 }
 
 if ($pipelineExitCode -eq 0) {
-  Write-Section "Render DB backup (pre-sync)..."
   if (-not $env:RENDER_DATABASE_URL -and $renderSyncRequired -eq "true") {
     throw "RENDER_DATABASE_URL not set. Render sync is required but missing."
   }
-  try { Backup-RenderDb $rootDir } catch { Write-Host "Render backup failed: $($_.Exception.Message)" }
-
   Write-Section "Syncing Render DB..."
   try { Sync-RenderDb } catch { Write-Host "Render sync failed: $($_.Exception.Message)" }
 } else {
@@ -150,6 +152,8 @@ if ($pipelineExitCode -eq 0) {
 
 Write-Section "Final backup (always runs)..."
 try { & npm run db:backup | Out-Host } catch { Write-Host "Final backup failed!" }
+Write-Section "Final Render backup (always runs)..."
+try { Backup-RenderDb $rootDir } catch { Write-Host "Render final backup failed: $($_.Exception.Message)" }
 
 Write-Host ""
 Write-Host "==============================="

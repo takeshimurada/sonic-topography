@@ -13,7 +13,7 @@ const easeInOutCubic = (t: number) => {
 };
 
 const MIN_YEAR = 1950;
-const MAX_YEAR = 2024;
+const MAX_YEAR = 2026;
 const DAYS_PER_YEAR = 365;
 const WORLD_WIDTH = 1200;  // 800 → 1200 (50% 확장)
 const WORLD_HEIGHT = 900;  // 600 → 900 (50% 확장)
@@ -423,8 +423,8 @@ export const MapCanvas: React.FC = () => {
   ]);
   
   const [viewState, setViewState] = useState({
-    target: [WORLD_WIDTH / 2, WORLD_HEIGHT * 0.6, 0] as [number, number, number],  // lower center per request
-    zoom: -1.1,  // 더 줌아웃 (넓은 영역 대응)
+    target: [WORLD_WIDTH / 2, WORLD_HEIGHT * 0.5, 0] as [number, number, number],  // centered
+    zoom: -0.2,  // less zoomed out on entry
     transitionDuration: 0,
     transitionInterpolator: null as any
   });
@@ -455,9 +455,15 @@ export const MapCanvas: React.FC = () => {
         const minRatio = Math.min(widthRatio, heightRatio);
 
         const initialZoom = Math.log2(minRatio * 0.5);
-        const cappedInitialZoom = Math.min(initialZoom, -0.4);
+        const aspect = width / height;
+        const aspectBias =
+          aspect >= 1.6 ? 0.25 :
+          aspect <= 0.85 ? -0.2 :
+          (aspect - 1.0) * 0.2;
+        const adjustedInitialZoom = initialZoom + aspectBias;
+        const cappedInitialZoom = Math.max(Math.min(adjustedInitialZoom, 0.1), -0.2);
         minZoomRef.current = cappedInitialZoom;
-        baseTargetRef.current = [WORLD_WIDTH / 2, WORLD_HEIGHT * 0.6, 0];
+        baseTargetRef.current = [WORLD_WIDTH / 2, WORLD_HEIGHT * 0.5, 0];
 
         setViewState(prev => ({
           ...prev,
@@ -1002,7 +1008,8 @@ export const MapCanvas: React.FC = () => {
 
             const panPaddingX = WORLD_WIDTH * 0.22;
             const panPaddingY = WORLD_HEIGHT * 0.12;
-            const allowPanAtZoom = zoom > -20.0;
+            const minZoomForPan = (minZoomRef.current ?? -0.2) + 0.15;
+            const allowPanAtZoom = zoom >= minZoomForPan;
             
             // X축 경계 제한 (부드럽게)
             let targetX = newViewState.target[0];

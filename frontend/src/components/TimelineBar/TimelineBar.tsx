@@ -13,7 +13,7 @@ export const TimelineBar: React.FC = () => {
   });
 
   const minYear = 1950;
-  const maxYear = 2024;
+  const maxYear = 2026;
   
   // 왼쪽 드롭박스 옵션: 1950 ~ 선택된 끝 연도
   const startYearOptions = React.useMemo(() => {
@@ -24,7 +24,7 @@ export const TimelineBar: React.FC = () => {
     return years;
   }, [selectedYears.end]);
 
-  // 오른쪽 드롭박스 옵션: 선택된 시작 연도 ~ 2024
+  // 오른쪽 드롭박스 옵션: 선택된 시작 연도 ~ 2026
   const endYearOptions = React.useMemo(() => {
     const years = [];
     for (let year = selectedYears.start; year <= maxYear; year++) {

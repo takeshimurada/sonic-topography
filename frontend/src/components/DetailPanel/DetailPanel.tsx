@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { X, Sparkles, Music, Star, Search, Globe, ListMusic, MessageSquare, BookOpen, Users, Heart, ExternalLink } from 'lucide-react';
 import { useStore, BACKEND_URL, getAuthHeaders } from '../../state/store';
 import { getExtendedAlbumDetails } from '../../services/geminiService';
-import { Region, ExtendedAlbumData, UserLog } from '../../types';
+import { Region, ExtendedAlbumData, UserLog, AlbumDetailMeta, AlbumCredit, TrackInfo, TrackCredit } from '../../types';
 
 // 장르별 색상 (MapCanvas와 동일)
 const GENRE_COLORS: Record<string, string> = {
@@ -28,15 +28,16 @@ const REGION_COLORS: Record<string, string> = {
   'Africa': '#A78BFA'
 };
 
-type Tab = 'context' | 'tracks' | 'credits' | 'reviews' | 'log';
+type Tab = 'log' | 'context' | 'tracks' | 'credits' | 'reviews';
 
-export const DetailPanel: React.FC = () => {
+export const DetailPanel: React.FC<{ albumId?: string | null }> = ({ albumId }) => {
   const { selectedAlbumId, albums, selectAlbum } = useStore();
+  const resolvedAlbumId = albumId ?? selectedAlbumId;
   
   // Data State
   const [details, setDetails] = useState<ExtendedAlbumData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('context');
+  const [activeTab, setActiveTab] = useState<Tab>('log');
   const [lang, setLang] = useState<'en' | 'ko'>(() => {
     const userLang = navigator.language || 'en';
     return userLang.startsWith('ko') ? 'ko' : 'en';
@@ -53,7 +54,8 @@ export const DetailPanel: React.FC = () => {
   // Step 1: 이벤트 로그 중복 방지 (앨범별로 1회만 기록)
   const lastViewedAlbumRef = useRef<string | null>(null);
 
-  const album = albums.find(a => a.id === selectedAlbumId);
+  const album = albums.find(a => a.id === resolvedAlbumId);
+  const [metaDetail, setMetaDetail] = useState<AlbumDetailMeta | null>(null);
 
   // Handle Research Call
   const handleResearch = useCallback(async () => {
@@ -137,7 +139,7 @@ export const DetailPanel: React.FC = () => {
     
     // Step 1에서는 spotifyUrl이 없으므로 placeholder
     // const spotifyUrl = (album as any).spotifyUrl;
-    const spotifyUrl = null; // TODO: Step 2에서 platform_ids로 제공 예정
+    const spotifyUrl = metaDetail?.album_links?.find(link => link.provider?.toLowerCase().includes('spotify'))?.url || null;
     
     if (spotifyUrl) {
       window.open(spotifyUrl, '_blank');
@@ -154,8 +156,9 @@ export const DetailPanel: React.FC = () => {
   useEffect(() => {
     setDetails(null);
     setLoading(false);
-    setActiveTab('context');
+    setActiveTab('log');
     setIsLiked(false); // Step 1: Like 상태 초기화
+    setMetaDetail(null);
     
     if (album) {
       // Load user log from local storage
@@ -174,6 +177,25 @@ export const DetailPanel: React.FC = () => {
         console.log('👀 Logged view_album event for:', album.id);
       }
       
+      const fetchMeta = async () => {
+        try {
+          const res = await fetch(`${BACKEND_URL}/album-groups/${album.id}/detail`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data?.data) return;
+          const detail = data.data;
+          setMetaDetail({
+            tracks: detail.tracks || [],
+            album_credits: detail.album_credits || [],
+            track_credits: detail.track_credits || [],
+            album_links: detail.album_links || [],
+          });
+        } catch (err) {
+          console.warn('⚠️ Failed to load metadata detail:', err);
+        }
+      };
+      fetchMeta();
+
       // 자동으로 AI 분석 생성
       handleResearch();
     }
@@ -203,12 +225,12 @@ export const DetailPanel: React.FC = () => {
     <div className="h-full flex flex-col bg-white border-l border-gray-200 shadow-lg overflow-hidden">
       
       {/* 1. Hero Header (더 큰 크기) */}
-      <div className="relative h-48 sm:h-56 md:h-64 lg:h-72 w-full shrink-0 group">
+      <div className="relative h-64 sm:h-72 md:h-80 lg:h-96 w-full shrink-0 group">
         <div className="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent z-10" />
         <img 
           src={album.coverUrl} 
           alt={album.title} 
-          className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105"
+          className="w-full h-full object-contain bg-gray-100 opacity-100 transition-transform duration-700 group-hover:scale-105"
         />
         <button 
           onClick={() => selectAlbum(null)}
@@ -310,11 +332,11 @@ export const DetailPanel: React.FC = () => {
 
       {/* 2. Navigation Tabs */}
       <div className="flex items-center border-b border-gray-200">
+        <TabButton id="log" label="My Log" icon={MessageSquare} active={activeTab} set={setActiveTab} />
         <TabButton id="context" label="Context" icon={BookOpen} active={activeTab} set={setActiveTab} />
         <TabButton id="tracks" label="Tracks" icon={ListMusic} active={activeTab} set={setActiveTab} />
         <TabButton id="credits" label="Credits" icon={Users} active={activeTab} set={setActiveTab} />
         <TabButton id="reviews" label="Reviews" icon={Globe} active={activeTab} set={setActiveTab} />
-        <TabButton id="log" label="My Log" icon={MessageSquare} active={activeTab} set={setActiveTab} />
       </div>
 
       {/* 3. Content Area */}
@@ -375,7 +397,19 @@ export const DetailPanel: React.FC = () => {
         {/* Tab: Tracks */}
         {activeTab === 'tracks' && (
           <div className="p-6">
-             {!details ? (
+             {metaDetail?.tracks?.length ? (
+               <div className="space-y-1">
+                 {metaDetail.tracks.map((track: TrackInfo, i: number) => (
+                   <div key={track.track_id || i} className="flex items-center py-3 px-3 hover:bg-gray-100 rounded-lg group transition-colors cursor-default">
+                     <span className="w-8 text-right mr-4 text-gray-500 font-mono text-sm group-hover:text-black">{track.track_no}</span>
+                     <span className="text-gray-700 font-medium text-sm group-hover:text-black">{track.title}</span>
+                     <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Music size={14} className="text-gray-400" />
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             ) : !details ? (
                <EmptyState onAction={handleResearch} label="Fetch Tracklist" />
              ) : (
                <div className="space-y-1">
@@ -396,7 +430,26 @@ export const DetailPanel: React.FC = () => {
         {/* Tab: Credits */}
         {activeTab === 'credits' && (
           <div className="p-6 space-y-4">
-            {!details ? (
+            {metaDetail?.album_credits?.length || metaDetail?.track_credits?.length ? (
+              <div className="space-y-4">
+                {[...(metaDetail?.album_credits || []), ...(metaDetail?.track_credits || [])].map((credit: AlbumCredit | TrackCredit, i: number) => (
+                  <div key={`${credit.creator.creator_id}-${credit.role.role_id}-${i}`} className="bg-white border border-gray-200 p-5 rounded-lg hover:border-gray-300 hover:shadow-md transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="text-black font-bold text-base">{credit.creator.display_name}</h4>
+                        <span className="text-gray-600 text-xs font-medium uppercase tracking-wider">{credit.role.role_name}</span>
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
+                        <Users size={18} className="text-slate-400" />
+                      </div>
+                    </div>
+                    {credit.credit_detail && (
+                      <p className="text-slate-600 text-sm leading-relaxed">{credit.credit_detail}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : !details ? (
               <EmptyState onAction={handleResearch} label="Fetch Credits Info" />
             ) : (
               <div className="space-y-4">

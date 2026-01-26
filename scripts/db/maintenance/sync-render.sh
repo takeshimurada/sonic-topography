@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env.local"
 
 if [ -f "${ENV_FILE}" ]; then

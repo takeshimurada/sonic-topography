@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env.local"
 
 if [ -f "${ENV_FILE}" ]; then
@@ -21,7 +21,8 @@ if ! docker ps --format '{{.Names}}' | grep -q '^sonic_db$'; then
   exit 1
 fi
 
-PG_URL="${RENDER_DATABASE_URL/postgresql+asyncpg:\/\//postgresql:\/\/}"
+PG_URL="${RENDER_DATABASE_URL/postgresql+asyncpg:\/\//postgresql://}"
+PG_URL="$(echo "$PG_URL" | xargs)"
 
 LOCAL_SQL=$(cat <<'SQL'
 SELECT

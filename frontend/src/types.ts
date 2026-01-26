@@ -62,6 +62,51 @@ export interface UserLog {
   updatedAt: string;
 }
 
+// --- Metadata Detail Types ---
+export interface AlbumLink {
+  provider: string;
+  url: string;
+  external_id?: string | null;
+  is_primary: boolean;
+}
+
+export interface CreatorRef {
+  creator_id: string;
+  display_name: string;
+  image_url?: string | null;
+}
+
+export interface RoleRef {
+  role_id: string;
+  role_name: string;
+  role_group: string;
+}
+
+export interface AlbumCredit {
+  creator: CreatorRef;
+  role: RoleRef;
+  credit_detail?: string | null;
+  credit_order?: number | null;
+}
+
+export interface TrackCredit extends AlbumCredit {}
+
+export interface TrackInfo {
+  track_id: string;
+  disc_no: number;
+  track_no: number;
+  title: string;
+  duration_ms?: number | null;
+  isrc?: string | null;
+}
+
+export interface AlbumDetailMeta {
+  tracks: TrackInfo[];
+  album_credits: AlbumCredit[];
+  track_credits: TrackCredit[];
+  album_links: AlbumLink[];
+}
+
 // --- Step 1: Like System Types ---
 
 export interface LikeItem {
