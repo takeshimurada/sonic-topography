@@ -13,6 +13,10 @@ const SPOTIFY_MAX_RETRIES = Number(process.env.SPOTIFY_MAX_RETRIES || "6");
 const SPOTIFY_ARTIST_BATCH_SIZE = Number(process.env.SPOTIFY_ARTIST_BATCH_SIZE || "50");
 const SPOTIFY_BATCH_DELAY_MS = Number(process.env.SPOTIFY_BATCH_DELAY_MS || "200");
 const SPOTIFY_SEED_OFFSET_MAX = Number(process.env.SPOTIFY_SEED_OFFSET_MAX || "50");
+const SPOTIFY_SEED_MAX_NEW = Number(process.env.SPOTIFY_SEED_MAX_NEW || "0");
+const SPOTIFY_SEED_ONLY =
+  String(process.env.SPOTIFY_SEED_ONLY || "").toLowerCase() === "1" ||
+  String(process.env.SPOTIFY_SEED_ONLY || "").toLowerCase() === "true";
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
   console.error("Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET in .env");
@@ -118,6 +122,26 @@ async function getAccessToken() {
   });
 
   return json.access_token;
+}
+
+function isTokenExpired(error) {
+  const msg = String(error?.message || "");
+  return msg.includes("HTTP 401") || msg.includes("status\": 401") || msg.toLowerCase().includes("access token expired");
+}
+
+function buildOutput(out, market) {
+  return {
+    generatedAt: new Date().toISOString(),
+    market,
+    count: out.length,
+    albums: out
+  };
+}
+
+function isAllQuestionMarks(value) {
+  if (!value) return false;
+  const compact = String(value).replace(/\s+/g, "");
+  return compact.length > 0 && /^\?+$/.test(compact);
 }
 
 // Spotify search max limit=50
@@ -227,12 +251,13 @@ async function main() {
   console.log('\n🎵 Spotify 앨범 수집 시작\n');
   
   console.log('🔐 토큰 발급 중...');
-  const token = await getAccessToken();
+  let token = await getAccessToken();
   console.log('✅ 토큰 발급 완료\n');
 
   const seenAlbumIds = new Set();
   const artistCache = new Map(); // 🎯 아티스트 캐싱
-  let out = [];
+  let out = []
+  let savedSeedIndex = 0;
   let apiCallsSaved = 0; // 캐시로 절약된 API 호출 수
 
   // 🔄 기존 v0 파일이 있으면 로드 (append 모드)
@@ -240,6 +265,9 @@ async function main() {
     try {
       const existing = JSON.parse(fs.readFileSync(OUT_FILE, 'utf-8'));
       out = existing.albums || [];
+      if (Number.isInteger(existing?.progress?.seedIndex)) {
+        savedSeedIndex = existing.progress.seedIndex;
+      }
       out.forEach(album => {
         const albumId = album.spotify?.albumId || album.albumId?.replace('spotify:album:', '');
         if (albumId) seenAlbumIds.add(albumId);
@@ -252,23 +280,53 @@ async function main() {
 
   const queries = buildQueries();
   const seeds = loadSeeds();
-  const seedStart = Number(process.env.SPOTIFY_SEED_START || "0");
+  const seedStartEnv = Number(process.env.SPOTIFY_SEED_START || "0");
+  const seedStart = seedStartEnv > 0 ? seedStartEnv : savedSeedIndex;
   const seedLimit = Number(process.env.SPOTIFY_SEED_LIMIT || "0");
   const seedSlice = seedLimit > 0 ? seeds.slice(seedStart, seedStart + seedLimit) : seeds.slice(seedStart);
   const seedCount = seedSlice.length;
+  const seedTotal = seeds.length;
+
+  const saveProgress = (seedIndex) => {
+    const output = buildOutput(out, MARKET);
+    output.progress = { seedIndex: seedIndex ?? savedSeedIndex };
+    fs.writeFileSync(OUT_FILE, JSON.stringify(output, null, 2), "utf-8");
+  };
+
+  const withTokenRefresh = async (fn) => {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await fn(token);
+      } catch (e) {
+        if (attempt === 0 && isTokenExpired(e)) {
+          console.warn("  Token expired; refreshing...");
+          token = await getAccessToken();
+          continue;
+        }
+        throw e;
+      }
+    }
+  };
 
   console.log(`📊 수집 설정`);
   console.log(`   Market: ${MARKET || 'Global'}`);
   console.log(`   Target: ${TARGET_ALBUMS}개`);
   console.log(`   Queries: ${queries.length}개`);
   console.log(`   Seeds: ${seedCount}${seedStart || seedLimit ? ` (start=${seedStart}, limit=${seedLimit || "all"})` : ""}`);
+  console.log(`   Seed resume: ${seedStart}/${seedTotal}`);
+  if (SPOTIFY_SEED_MAX_NEW > 0) {
+    console.log(`   Seed max new: ${SPOTIFY_SEED_MAX_NEW}`);
+  }
+  console.log(`   Seed-only: ${SPOTIFY_SEED_ONLY ? "yes" : "no"}`);
   console.log(`   기존 앨범: ${out.length}개`);
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
   if (seedSlice.length > 0) {
     console.log(`
 Seed pass (award_seeds.json)`);
+    const startCount = out.length;
     for (let si = 0; si < seedSlice.length; si++) {
       const seed = seedSlice[si];
+      const absoluteSeedIndex = seedStart + si;
       const q = seed?.query;
       if (!q || typeof q !== "string") continue;
       console.log(`
@@ -283,7 +341,7 @@ Seed pass (award_seeds.json)`);
         console.log(`  offset=${offset} searching...`);
         let json;
         try {
-          json = await searchAlbums(token, q, offset);
+          json = await withTokenRefresh((tok) => searchAlbums(tok, q, offset));
         } catch (e) {
           console.warn(`  Seed search failed: ${e.message}`);
           continue;
@@ -299,7 +357,7 @@ Seed pass (award_seeds.json)`);
         }
         if (newArtistIds.length > 0) {
           const uniqueArtistIds = Array.from(new Set(newArtistIds));
-          const artists = await getArtistsBatch(token, uniqueArtistIds);
+          const artists = await withTokenRefresh((tok) => getArtistsBatch(tok, uniqueArtistIds));
           for (const artist of artists) {
             if (artist?.id) {
               artistCache.set(artist.id, artist);
@@ -324,6 +382,9 @@ Seed pass (award_seeds.json)`);
           if (artistName && artistName.toLowerCase().includes('various artists')) {
             continue;
           }
+          if (isAllQuestionMarks(artistName) || isAllQuestionMarks(album?.name)) {
+            continue;
+          }
 
           let artist;
           if (artistCache.has(artistId)) {
@@ -331,7 +392,7 @@ Seed pass (award_seeds.json)`);
             apiCallsSaved++;
           } else {
             try {
-              artist = await getArtist(token, artistId);
+              artist = await withTokenRefresh((tok) => getArtist(tok, artistId));
               artistCache.set(artistId, artist);
             } catch (e) {
               continue;
@@ -349,10 +410,22 @@ Seed pass (award_seeds.json)`);
         await sleep(300);
       }
 
+      savedSeedIndex = absoluteSeedIndex + 1;
+      saveProgress(savedSeedIndex);
+
+      if (SPOTIFY_SEED_MAX_NEW > 0 && (out.length - startCount) >= SPOTIFY_SEED_MAX_NEW) {
+        console.log(`  Seed batch reached (${SPOTIFY_SEED_MAX_NEW}). Stopping for safety.`);
+        break;
+      }
+
       if (out.length >= TARGET_ALBUMS) break;
     }
+    saveProgress(savedSeedIndex);
   }
 
+  if (SPOTIFY_SEED_ONLY) {
+    console.log("\nSeed-only enabled; skipping query pass.");
+  } else {
   for (let qi = 0; qi < queries.length; qi++) {
     const q = queries[qi];
     console.log(`\n[쿼리 ${qi + 1}/${queries.length}] "${q}"`);
@@ -368,7 +441,7 @@ Seed pass (award_seeds.json)`);
       
       let json;
       try {
-        json = await searchAlbums(token, q, offset);
+        json = await withTokenRefresh((tok) => searchAlbums(tok, q, offset));
       } catch (e) {
         console.warn(`  ❌ 검색 실패: ${e.message}`);
         continue;
@@ -384,7 +457,7 @@ Seed pass (award_seeds.json)`);
       }
       if (newArtistIds.length > 0) {
         const uniqueArtistIds = Array.from(new Set(newArtistIds));
-        const artists = await getArtistsBatch(token, uniqueArtistIds);
+        const artists = await withTokenRefresh((tok) => getArtistsBatch(tok, uniqueArtistIds));
         for (const artist of artists) {
           if (artist?.id) {
             artistCache.set(artist.id, artist);
@@ -413,6 +486,9 @@ Seed pass (award_seeds.json)`);
         if (artistName && artistName.toLowerCase().includes('various artists')) {
           continue;
         }
+        if (isAllQuestionMarks(artistName) || isAllQuestionMarks(album?.name)) {
+          continue;
+        }
 
         // 🎯 아티스트 캐싱: 이미 조회한 아티스트는 재사용
         let artist;
@@ -421,7 +497,7 @@ Seed pass (award_seeds.json)`);
           apiCallsSaved++;
         } else {
           try {
-            artist = await getArtist(token, artistId);
+            artist = await withTokenRefresh((tok) => getArtist(tok, artistId));
             artistCache.set(artistId, artist); // 캐시에 저장
           } catch (e) {
             // artist fetch 실패 시 스킵
@@ -457,10 +533,12 @@ Seed pass (award_seeds.json)`);
       await sleep(300);
     }
 
+    saveProgress(savedSeedIndex);
     if (out.length >= TARGET_ALBUMS) break;
   }
+  }
 
-  fs.writeFileSync(OUT_FILE, JSON.stringify({ generatedAt: new Date().toISOString(), market: MARKET, count: out.length, albums: out }, null, 2), "utf-8");
+  saveProgress(savedSeedIndex);
   
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log(`\n✅ 수집 완료!`);

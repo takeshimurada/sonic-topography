@@ -22,6 +22,7 @@ from .models import (
     CulturalAsset,
     AssetLink,
     AlbumLink,
+    AlbumAward,
     DevUser,
     UserLike,
     UserEvent,
@@ -31,7 +32,7 @@ from .schemas import (
     DevUserCreateResponse, LikeRequest, LikeResponse, LikeItem, LikesListResponse,
     EventRequest, EventResponse, AlbumGroupDetailResponse, ReleaseResponse, TrackResponse,
     AlbumCreditResponse, TrackCreditResponse, CreatorResponse, RoleResponse,
-    AssetResponse, AlbumLinkResponse, ArtistProfileResponse, ArtistLinkResponse, ArtistAlbumResponse, ArtistRelationResponse
+    AssetResponse, AlbumLinkResponse, AlbumAwardResponse, ArtistProfileResponse, ArtistLinkResponse, ArtistAlbumResponse, ArtistRelationResponse
 )
 from .service_gemini import get_ai_research
 
@@ -437,6 +438,23 @@ async def get_album_group_detail(album_id: str, db: AsyncSession = Depends(get_d
         for l in links_res.scalars().all()
     ]
 
+    awards_res = await db.execute(select(AlbumAward).where(AlbumAward.album_group_id == album_id))
+    album_awards = [
+        AlbumAwardResponse(
+            award_name=a.award_name,
+            award_kind=a.award_kind,
+            award_year=a.award_year,
+            award_result=a.award_result,
+            award_category=a.award_category,
+            source_url=a.source_url,
+            sources=a.sources,
+            region=a.region,
+            country=a.country,
+            genre_tags=a.genre_tags
+        )
+        for a in awards_res.scalars().all()
+    ]
+
     detail = AlbumGroupDetailResponse(
         album=album,
         releases=releases,
@@ -444,7 +462,8 @@ async def get_album_group_detail(album_id: str, db: AsyncSession = Depends(get_d
         album_credits=album_credits,
         track_credits=track_credits,
         assets=assets,
-        album_links=album_links
+        album_links=album_links,
+        album_awards=album_awards
     )
     return APIResponse(data=detail)
 

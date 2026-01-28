@@ -1,0 +1,181 @@
+{
+  "generatedAt": "2026-01-28",
+  "notes": "Sources used to build award_seeds.json (1950+ winners/nominees where available).",
+  "sources": [
+    {
+      "id": "grammy-album-categories",
+      "kind": "wikipedia-category",
+      "category": "Category:Grammy_Award_for_Best_Album",
+      "award": "Grammy",
+      "region": "US"
+    },
+    {
+      "id": "grammy-album-of-the-year",
+      "kind": "wikipedia-page",
+      "title": "Grammy_Award_for_Album_of_the_Year",
+      "award": "Grammy",
+      "region": "US"
+    },
+    {
+      "id": "grammy-reggae-album",
+      "kind": "wikipedia-page",
+      "title": "Grammy_Award_for_Best_Reggae_Album",
+      "award": "Grammy",
+      "region": "Caribbean"
+    },
+    {
+      "id": "latin-grammy-album-categories",
+      "kind": "wikipedia-category",
+      "category": "Category:Latin_Grammy_Award_for_Best_Album",
+      "award": "Latin Grammy",
+      "region": "Latin"
+    },
+    {
+      "id": "latin-grammy-album-of-the-year",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Album_of_the_Year",
+      "award": "Latin Grammy",
+      "region": "Latin"
+    },
+    {
+      "id": "latin-grammy-mpb",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_MPB_Album",
+      "award": "Latin Grammy",
+      "region": "Brazil"
+    },
+    {
+      "id": "latin-grammy-portuguese-pop",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Portuguese_Language_Contemporary_Pop_Album",
+      "award": "Latin Grammy",
+      "region": "Brazil"
+    },
+    {
+      "id": "latin-grammy-portuguese-rock-alt",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Portuguese_Language_Rock_or_Alternative_Album",
+      "award": "Latin Grammy",
+      "region": "Brazil"
+    },
+    {
+      "id": "latin-grammy-portuguese-roots",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Portuguese_Language_Roots_Album",
+      "award": "Latin Grammy",
+      "region": "Brazil"
+    },
+    {
+      "id": "latin-grammy-alternative",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Alternative_Music_Album",
+      "award": "Latin Grammy",
+      "region": "Latin"
+    },
+    {
+      "id": "latin-grammy-urban",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Urban_Music_Album",
+      "award": "Latin Grammy",
+      "region": "Latin"
+    },
+    {
+      "id": "latin-grammy-contemporary-pop",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Contemporary_Pop_Album",
+      "award": "Latin Grammy",
+      "region": "Latin"
+    },
+    {
+      "id": "latin-grammy-singer-songwriter",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Singer-Songwriter_Album",
+      "award": "Latin Grammy",
+      "region": "Latin"
+    },
+    {
+      "id": "latin-grammy-classical",
+      "kind": "wikipedia-page",
+      "title": "Latin_Grammy_Award_for_Best_Classical_Album",
+      "award": "Latin Grammy",
+      "region": "Latin"
+    },
+    {
+      "id": "brit-album-of-the-year",
+      "kind": "wikipedia-page",
+      "title": "Brit_Award_for_British_Album_of_the_Year",
+      "award": "BRIT",
+      "region": "Europe"
+    },
+    {
+      "id": "mercury-prize",
+      "kind": "wikipedia-page",
+      "title": "Mercury_Prize",
+      "award": "Mercury Prize",
+      "region": "Europe"
+    },
+    {
+      "id": "korean-music-awards",
+      "kind": "wikipedia-page",
+      "title": "Korean_Music_Awards",
+      "award": "Korean Music Awards",
+      "region": "Korea"
+    },
+    {
+      "id": "mama-album-of-the-year",
+      "kind": "wikipedia-page",
+      "title": "Mnet_Asian_Music_Award_for_Album_of_the_Year",
+      "award": "MAMA",
+      "region": "Korea"
+    },
+    {
+      "id": "melon-album-of-the-year",
+      "kind": "wikipedia-page",
+      "title": "Melon_Music_Award_for_Album_of_the_Year",
+      "award": "Melon Music Awards",
+      "region": "Korea"
+    },
+    {
+      "id": "golden-melody-album-of-the-year",
+      "kind": "wikipedia-page",
+      "title": "Golden_Melody_Award_for_Album_of_the_Year",
+      "award": "Golden Melody Awards",
+      "region": "Taiwan"
+    },
+    {
+      "id": "golden-melody-best-mandarin-album",
+      "kind": "wikipedia-page",
+      "title": "Golden_Melody_Award_for_Best_Mandarin_Album",
+      "award": "Golden Melody Awards",
+      "region": "Taiwan"
+    },
+    {
+      "id": "golden-melody-best-taiwanese-album",
+      "kind": "wikipedia-page",
+      "title": "Golden_Melody_Award_for_Best_Taiwanese_Album",
+      "award": "Golden Melody Awards",
+      "region": "Taiwan"
+    },
+    {
+      "id": "golden-melody-best-hakka-album",
+      "kind": "wikipedia-page",
+      "title": "Golden_Melody_Award_for_Best_Hakka_Album",
+      "award": "Golden Melody Awards",
+      "region": "Taiwan"
+    },
+    {
+      "id": "japan-gold-disc-awards",
+      "kind": "wikipedia-page",
+      "title": "Japan_Gold_Disc_Award",
+      "award": "Japan Gold Disc Awards",
+      "region": "Japan"
+    },
+    {
+      "id": "mtv-vma-japan-album",
+      "kind": "wikipedia-page",
+      "title": "MTV_Video_Music_Award_Japan_for_Album_of_the_Year",
+      "award": "MTV VMA Japan",
+      "region": "Japan"
+    }
+  ]
+}

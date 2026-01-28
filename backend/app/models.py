@@ -107,6 +107,7 @@ class AlbumGroup(Base):
     releases = relationship("Release", back_populates="album_group")
     album_credits = relationship("AlbumCredit", back_populates="album_group")
     album_links = relationship("AlbumLink", back_populates="album_group")
+    album_awards = relationship("AlbumAward", back_populates="album_group")
     map_node = relationship("MapNode", back_populates="album_group", uselist=False)
 
 class Label(Base):
@@ -238,6 +239,36 @@ class AlbumLink(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     album_group = relationship("AlbumGroup", back_populates="album_links")
+
+class AlbumAward(Base):
+    __tablename__ = "album_awards"
+
+    album_award_id = Column(String, primary_key=True)
+    album_group_id = Column(String, ForeignKey("album_groups.album_group_id"), nullable=False, index=True)
+    award_name = Column(String, nullable=False, index=True)
+    award_kind = Column(String, nullable=False, server_default="award")
+    award_year = Column(Integer, nullable=True, index=True)
+    award_result = Column(String, nullable=True)
+    award_category = Column(String, nullable=True)
+    source_url = Column(Text, nullable=True)
+    sources = Column(JSONB, nullable=True)
+    region = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    genre_tags = Column(JSONB, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    album_group = relationship("AlbumGroup", back_populates="album_awards")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "album_group_id",
+            "award_name",
+            "award_year",
+            "award_result",
+            "source_url",
+            name="uq_album_award"
+        ),
+    )
 
 class CreatorLink(Base):
     __tablename__ = "creator_links"

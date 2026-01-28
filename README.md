@@ -10,7 +10,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)](https://www.postgresql.org/)
 [![Deck.gl](https://img.shields.io/badge/Deck.gl-8.9-ff69b4)](https://deck.gl/)
 
-**Version 5.5**
+**Version 6.5**
 
 </div>
 
@@ -101,13 +101,13 @@ npm run dev:backend && npm run dev:frontend
 
 ---
 
-## 변경 사항 (v5.5)
+## ???? (v6.5)
 
-- Map UI: 타임라인/장르 필터 레이아웃 개선 및 가독성 조정
-- Map interaction: 줌/패닝 범위 및 인디케이터 위치 튜닝
-- Genre filter: 장르 선택 기반 강조(비선택 흐림) 및 좌측 고정 패널 추가
-- Pipeline: PowerShell 전용 `pipeline-safe:ps` 스크립트 추가
-- Spotify fetch: 연도 범위/필터 강화 옵션 반영
+- Awards/Lists: `album_awards` ??? ? API ?? ?? (?? ?? ??)
+- Seeds: award/all-time seed builder ?? + ?? ??
+- Pipeline: album_awards ??? + ???? ?? ??
+- Spotify ??: ?? ???/?? ??/?? ??(resume) ??
+- Metadata ???: ?? album_group_id ?? ??
 
 ---
 
@@ -124,13 +124,13 @@ Sonic Topography is a web app that maps music albums onto a 2D space.
 
 ---
 
-## Changes (v5.5)
+## Changes (v6.5)
 
-- Map UI: timeline/genre filter layout and readability tweaks
-- Map interaction: zoom/pan bounds and indicator positioning tuned
-- Genre filter: highlight selected genre with dimmed others + left docked panel
-- Pipeline: PowerShell-friendly `pipeline-safe:ps` added
-- Spotify fetch: year range and filtering adjustments
+- Awards/Lists: `album_awards` table + API exposure for badges
+- Seeds: award/all-time seed builders and source expansion
+- Pipeline: award import + dedupe updates
+- Spotify fetch: token refresh, progress save, batch resume
+- Metadata import: skip missing album_group_id safely
 
 ---
 

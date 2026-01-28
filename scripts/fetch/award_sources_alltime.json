@@ -1,0 +1,106 @@
+{
+  "generatedAt": "2026-01-28",
+  "notes": "All-time lists across major publications/services.",
+  "sources": [
+    {
+      "id": "rolling-stone-500",
+      "kind": "csv-url",
+      "url": "https://gist.githubusercontent.com/hasmanyguitars/232302a4ba29fd8f5f0d0352ef55d2b9/raw/8e2c91bcabd5edd936e06d99de519741e3b7bff8/rolling_stone_top_500_albums_2020.csv",
+      "columns": {
+        "artist": "Artist",
+        "album": "Album"
+      },
+      "award": "Rolling Stone 500",
+      "region": "Global",
+      "country": "US"
+    },
+    {
+      "id": "rolling-stone-500-2012",
+      "kind": "markdown-list",
+      "url": "https://gist.githubusercontent.com/cwparsons/89cb1fdf8f95c953685eb2798e881373/raw/500%20Greatest%20Albums%20of%20All%20Time.md",
+      "award": "Rolling Stone 500 (2012)",
+      "region": "Global",
+      "country": "US"
+    },
+    {
+      "id": "nme-500-500-401",
+      "kind": "html-text-list",
+      "url": "https://www.nme.com/photos/the-500-greatest-albums-of-all-time-500-401-1426363",
+      "requireRank": true,
+      "maxRank": 500,
+      "award": "NME 500",
+      "region": "Europe",
+      "country": "UK"
+    },
+    {
+      "id": "nme-500-400-301",
+      "kind": "html-text-list",
+      "url": "https://www.nme.com/photos/the-500-greatest-albums-of-all-time-400-301-1426436",
+      "requireRank": true,
+      "maxRank": 500,
+      "award": "NME 500",
+      "region": "Europe",
+      "country": "UK"
+    },
+    {
+      "id": "nme-500-300-201",
+      "kind": "html-text-list",
+      "url": "https://www.nme.com/photos/the-500-greatest-albums-of-all-time-300-201-1426482",
+      "requireRank": true,
+      "maxRank": 500,
+      "award": "NME 500",
+      "region": "Europe",
+      "country": "UK"
+    },
+    {
+      "id": "nme-500-200-101",
+      "kind": "html-text-list",
+      "url": "https://www.nme.com/photos/the-500-greatest-albums-of-all-time-200-101-1426258",
+      "requireRank": true,
+      "maxRank": 500,
+      "award": "NME 500",
+      "region": "Europe",
+      "country": "UK"
+    },
+    {
+      "id": "nme-500-100-1",
+      "kind": "html-text-list",
+      "url": "https://www.nme.com/photos/the-500-greatest-albums-of-all-time-100-1-1426116",
+      "requireRank": true,
+      "maxRank": 500,
+      "award": "NME 500",
+      "region": "Europe",
+      "country": "UK"
+    },
+    {
+      "id": "apple-music-100",
+      "kind": "wikipedia-page",
+      "title": "Apple_Music_100_Best_Albums",
+      "award": "Apple Music 100",
+      "region": "Global",
+      "country": "US"
+    },
+    {
+      "id": "guardian-1000",
+      "kind": "listchallenges",
+      "url": "https://www.listchallenges.com/the-guardians-1000-albums-to-hear-before-you-die",
+      "award": "Guardian 1000",
+      "region": "Global",
+      "country": "UK"
+    },
+    {
+      "id": "pitchfork-rap-100",
+      "kind": "html-text-list",
+      "url": "https://pitchfork.com/features/lists-and-guides/the-best-rap-albums-of-all-time-according-to-pitchfork-readers/",
+      "requireRank": true,
+      "maxRank": 100,
+      "award": "Pitchfork Readers Rap 100",
+      "region": "Global",
+      "country": "US",
+      "genreTags": [
+        "Hip-Hop",
+        "Rap"
+      ]
+    }
+  ]
+}

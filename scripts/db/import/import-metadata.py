@@ -212,6 +212,10 @@ async def import_collaborations():
         existing_triples = set((r[0], r[1], r[2]) for r in result.all())
         print(f"📋 기존 DB album_credits: {len(existing_triples)}개\n")
 
+        stmt = select(AlbumGroup.album_group_id)
+        result = await session.execute(stmt)
+        existing_album_ids = set(result.scalars().all())
+
         stmt = select(Creator.creator_id)
         result = await session.execute(stmt)
         existing_creator_ids = set(result.scalars().all())
@@ -226,6 +230,9 @@ async def import_collaborations():
         skipped = 0
 
         for album_id, album_data in collab_data.items():
+            if album_data['album_id'] not in existing_album_ids:
+                skipped += 1
+                continue
             # 메인 아티스트
             for idx, artist in enumerate(album_data.get('main_artists', [])):
                 creator_id = to_creator_id(artist['id'])
@@ -322,11 +329,18 @@ async def import_credits():
         existing_triples = set((r[0], r[1], r[2]) for r in result.all())
         print(f"📋 기존 DB 크레딧: {len(existing_triples)}개\n")
 
+        stmt = select(AlbumGroup.album_group_id)
+        result = await session.execute(stmt)
+        existing_album_ids = set(result.scalars().all())
+
     # 새 크레딧 생성
     new_credits = []
     skipped = 0
 
     for album_id, album_data in credits_data.items():
+        if album_data['album_id'] not in existing_album_ids:
+            skipped += 1
+            continue
         if not album_data.get('found'):
             continue
 

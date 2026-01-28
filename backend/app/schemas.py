@@ -113,6 +113,18 @@ class AlbumLinkResponse(BaseModel):
     external_id: Optional[str] = None
     is_primary: bool
 
+class AlbumAwardResponse(BaseModel):
+    award_name: str
+    award_kind: str
+    award_year: Optional[int] = None
+    award_result: Optional[str] = None
+    award_category: Optional[str] = None
+    source_url: Optional[str] = None
+    sources: Optional[List[str]] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    genre_tags: Optional[List[str]] = None
+
 class AlbumGroupDetailResponse(BaseModel):
     album: AlbumResponse
     releases: List[ReleaseResponse]
@@ -121,6 +133,7 @@ class AlbumGroupDetailResponse(BaseModel):
     track_credits: List[TrackCreditResponse]
     assets: List[AssetResponse]
     album_links: List[AlbumLinkResponse]
+    album_awards: List[AlbumAwardResponse]
 
 # ========================================
 # Artist Profile Schemas
