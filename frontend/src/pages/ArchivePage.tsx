@@ -3,6 +3,9 @@ import { useStore } from '../state/store';
 import { Album } from '../types';
 import { ChevronDown, Music2 } from 'lucide-react';
 
+const YEAR_MIN = 1950;
+const YEAR_MAX = 2026;
+
 // 장르 목록 (DB 실제 장르)
 const GENRES = [
   'All',
@@ -89,13 +92,15 @@ const AlbumCard: React.FC<{ album: Album; onClick: () => void }> = React.memo(({
 });
 
 export const ArchivePage: React.FC = () => {
-  const { albums, selectAlbum, selectedAlbumId } = useStore();
+  const { albums, selectAlbum } = useStore();
   
   const [selectedGenre, setSelectedGenre] = useState<string>('All');
-  const [selectedYear, setSelectedYear] = useState<string>('All');
+  const [yearRange, setYearRange] = useState<[number, number]>([YEAR_MIN, YEAR_MAX]);
   const [selectedCountry, setSelectedCountry] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('popularity');
   const [displayCount, setDisplayCount] = useState(50); // 초기 표시 개수 (50개로 감소)
+  const [draggingHandle, setDraggingHandle] = useState<'min' | 'max' | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
 
   // Intersection Observer용 ref
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -109,12 +114,73 @@ export const ArchivePage: React.FC = () => {
   const loadMore = useCallback(() => {
     setDisplayCount(prev => prev + 50);
   }, []);
+  const clampYear = useCallback((value: number) => {
+    return Math.min(YEAR_MAX, Math.max(YEAR_MIN, value));
+  }, []);
 
-  // 연도 목록 생성 (앨범이 있는 연도만)
-  const years = useMemo(() => {
-    const yearSet = new Set(albums.map(a => a.year).filter(y => y > 0));
-    return ['All', ...Array.from(yearSet).sort((a, b) => b - a)];
-  }, [albums]);
+  const pointerToYear = useCallback((clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const relativeX = Math.min(rect.width, Math.max(0, clientX - rect.left));
+    const ratio = rect.width === 0 ? 0 : relativeX / rect.width;
+    return clampYear(Math.round(YEAR_MIN + ratio * (YEAR_MAX - YEAR_MIN)));
+  }, [clampYear]);
+
+  const updateRange = useCallback((handle: 'min' | 'max', nextValue: number) => {
+    setYearRange(prev => {
+      const clamped = clampYear(nextValue);
+      if (handle === 'min') {
+        return [Math.min(clamped, prev[1]), prev[1]];
+      }
+      return [prev[0], Math.max(clamped, prev[0])];
+    });
+  }, [clampYear]);
+
+  const handleTrackPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const nextYear = pointerToYear(event.clientX);
+    if (nextYear === null) return;
+    const distToMin = Math.abs(nextYear - yearRange[0]);
+    const distToMax = Math.abs(nextYear - yearRange[1]);
+    const handle = distToMin <= distToMax ? 'min' : 'max';
+    setDraggingHandle(handle);
+    updateRange(handle, nextYear);
+  }, [pointerToYear, yearRange, updateRange]);
+
+  const handlePointerDown = useCallback((event: React.PointerEvent, handle: 'min' | 'max') => {
+    event.stopPropagation();
+    event.preventDefault();
+    setDraggingHandle(handle);
+    const nextYear = pointerToYear(event.clientX);
+    if (nextYear !== null) {
+      updateRange(handle, nextYear);
+    }
+  }, [pointerToYear, updateRange]);
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!draggingHandle) return;
+      event.preventDefault();
+      const nextYear = pointerToYear(event.clientX);
+      if (nextYear === null) return;
+      updateRange(draggingHandle, nextYear);
+    };
+
+    const handlePointerUp = () => {
+      setDraggingHandle(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointerleave', handlePointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointerleave', handlePointerUp);
+    };
+  }, [draggingHandle, pointerToYear, updateRange]);
+
 
   // 국가 목록 생성 (앨범이 있는 국가만)
   const countries = useMemo(() => {
@@ -132,8 +198,8 @@ export const ArchivePage: React.FC = () => {
     }
 
     // 연도 필터
-    if (selectedYear !== 'All') {
-      filtered = filtered.filter(album => album.year === Number(selectedYear));
+    if (yearRange[0] !== YEAR_MIN || yearRange[1] !== YEAR_MAX) {
+      filtered = filtered.filter(album => album.year >= yearRange[0] && album.year <= yearRange[1]);
     }
 
     // 국가 필터
@@ -167,7 +233,7 @@ export const ArchivePage: React.FC = () => {
     setDisplayCount(50);
 
     return filtered;
-  }, [albums, selectedGenre, selectedYear, selectedCountry, sortBy]);
+  }, [albums, selectedGenre, yearRange, selectedCountry, sortBy]);
 
   // 실제 표시할 앨범 (성능 최적화)
   const displayedAlbums = useMemo(() => {
@@ -234,19 +300,46 @@ export const ArchivePage: React.FC = () => {
               </div>
 
               {/* 연도 필터 */}
-              <div className="relative">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="appearance-none bg-white border border-gray-300 rounded px-3 py-1.5 pr-8 text-sm text-black focus:outline-none focus:border-black cursor-pointer hover:border-gray-400 transition-colors"
+              {/* Years slider */}
+              <div className="flex flex-col items-center gap-1 rounded border border-gray-300 bg-white px-3 py-1.5 min-h-[44px]">
+                <div
+                  ref={trackRef}
+                  onPointerDown={handleTrackPointerDown}
+                  className="relative h-3 w-[180px] cursor-pointer"
                 >
-                  {years.map(year => (
-                    <option key={year} value={year} className="bg-white">
-                      {year === 'All' ? 'All Years' : year}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="h-1 w-full rounded-full bg-gray-200" />
+                    <div
+                      className="absolute h-1 rounded-full bg-black"
+                      style={{
+                        left: `${((yearRange[0] - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100}%`,
+                        right: `${100 - ((yearRange[1] - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <div
+                    onPointerDown={(event) => handlePointerDown(event, 'min')}
+                    className="pointer-events-auto absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-black bg-white shadow-lg"
+                    style={{
+                      left: `${((yearRange[0] - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100}%`,
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                    aria-label="Start year"
+                  />
+                  <div
+                    onPointerDown={(event) => handlePointerDown(event, 'max')}
+                    className="pointer-events-auto absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-black bg-white shadow-lg"
+                    style={{
+                      left: `${((yearRange[1] - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100}%`,
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                    aria-label="End year"
+                  />
+                </div>
+                <div className="flex w-full justify-between text-[10px] font-semibold text-gray-600">
+                  <span>{yearRange[0]}</span>
+                  <span>{yearRange[1]}</span>
+                </div>
               </div>
 
               {/* 국가 필터 */}
