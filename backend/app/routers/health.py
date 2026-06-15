@@ -1,4 +1,6 @@
 import os
+import ssl
+import socket
 import asyncpg
 from fastapi import APIRouter
 from urllib.parse import urlparse
@@ -13,42 +15,58 @@ def health_check():
 
 @router.get("/health/db")
 async def health_db():
-    """Diagnostic: test multiple connection modes"""
     parsed = urlparse(_DB_URL.replace("postgresql+asyncpg://", "postgresql://").split("?")[0])
     host = parsed.hostname
     port = parsed.port or 5432
     user = parsed.username
     password = parsed.password
     database = parsed.path.lstrip("/")
+    native_dsn = f"postgresql://{user}:{password}@{host}:{port}/{database}?sslmode=require"
 
     results = {}
 
-    # Test 1: ssl=require
+    # DNS check
+    try:
+        results["dns"] = {"ok": True, "ip": socket.gethostbyname(host)}
+    except Exception as e:
+        results["dns"] = {"ok": False, "msg": str(e)}
+
+    # Test 1: ssl="require" (asyncpg string mode)
     try:
         conn = await asyncpg.connect(host=host, port=port, user=user,
             password=password, database=database, ssl="require", timeout=8)
-        row = await conn.fetchval("SELECT version()")
+        results["ssl_require"] = {"ok": True, "v": await conn.fetchval("SELECT version()")}
         await conn.close()
-        results["ssl_require"] = {"ok": True, "version": row}
     except Exception as e:
         results["ssl_require"] = {"ok": False, "type": type(e).__name__, "msg": str(e)}
 
-    # Test 2: ssl=False (no SSL)
+    # Test 2: ssl=True (create_default_context — verifies cert)
     try:
         conn = await asyncpg.connect(host=host, port=port, user=user,
-            password=password, database=database, ssl=False, timeout=8)
-        row = await conn.fetchval("SELECT version()")
+            password=password, database=database, ssl=True, timeout=8)
+        results["ssl_true"] = {"ok": True, "v": await conn.fetchval("SELECT version()")}
         await conn.close()
-        results["ssl_false"] = {"ok": True, "version": row}
     except Exception as e:
-        results["ssl_false"] = {"ok": False, "type": type(e).__name__, "msg": str(e)}
+        results["ssl_true"] = {"ok": False, "type": type(e).__name__, "msg": str(e)}
 
-    # Test 3: dns resolution check
-    import socket
+    # Test 3: native DSN with ?sslmode=require
     try:
-        ip = socket.gethostbyname(host)
-        results["dns"] = {"ok": True, "host": host, "ip": ip}
+        conn = await asyncpg.connect(native_dsn, timeout=8)
+        results["sslmode_dsn"] = {"ok": True, "v": await conn.fetchval("SELECT version()")}
+        await conn.close()
     except Exception as e:
-        results["dns"] = {"ok": False, "host": host, "msg": str(e)}
+        results["sslmode_dsn"] = {"ok": False, "type": type(e).__name__, "msg": str(e)}
+
+    # Test 4: PROTOCOL_TLS with minimal settings
+    try:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        conn = await asyncpg.connect(host=host, port=port, user=user,
+            password=password, database=database, ssl=ctx, timeout=8)
+        results["ssl_ctx"] = {"ok": True, "v": await conn.fetchval("SELECT version()")}
+        await conn.close()
+    except Exception as e:
+        results["ssl_ctx"] = {"ok": False, "type": type(e).__name__, "msg": str(e)}
 
     return results
