@@ -1,4 +1,5 @@
-﻿from fastapi import FastAPI
+﻿import asyncio
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import engine, Base
@@ -21,11 +22,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def _init_db():
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("DB init complete")
+    except Exception as e:
+        print(f"DB init failed (non-fatal): {e}")
+
 @app.on_event("startup")
 async def startup():
-    # Simple table creation for MVP
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    asyncio.create_task(_init_db())
 
 app.include_router(health.router)
 app.include_router(albums.router)
