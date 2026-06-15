@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: sonic-topography-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false        # Render 대시보드에서 직접 입력 (music_mapmap_db 연결 문자열)
+      - key: API_KEY
+        sync: false        # Gemini API Key (선택)
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: REDIS_URL
+        value: ""          # 비워두면 Redis 없이 동작 (캐시 스킵)
+      - key: GOOGLE_CLIENT_ID
+        value: ""
+      - key: LASTFM_API_KEY
+        value: ""
+    healthCheckPath: /health

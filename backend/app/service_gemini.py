@@ -8,15 +8,31 @@ from .models import AiResearch, AlbumGroup
 import redis.asyncio as redis
 
 API_KEY = os.getenv("API_KEY")
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "")
 
-# Setup Redis
-redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+# Redis is optional — no REDIS_URL means cache is skipped gracefully
+redis_client = redis.from_url(REDIS_URL, decode_responses=True) if REDIS_URL else None
+
+async def _redis_get(key: str):
+    if not redis_client:
+        return None
+    try:
+        return await redis_client.get(key)
+    except Exception:
+        return None
+
+async def _redis_set(key: str, value: str, ex: int = 604800):
+    if not redis_client:
+        return
+    try:
+        await redis_client.setex(key, ex, value)
+    except Exception:
+        pass
 
 async def get_ai_research(db: AsyncSession, album_id: str, lang: str = 'en'):
     # 1. Check Redis
     cache_key = f"research:{album_id}:{lang}"
-    cached = await redis_client.get(cache_key)
+    cached = await _redis_get(cache_key)
     if cached:
         return json.loads(cached)
 
@@ -29,7 +45,7 @@ async def get_ai_research(db: AsyncSession, album_id: str, lang: str = 'en'):
             "sources": db_record.sources,
             "confidence": db_record.confidence
         }
-        await redis_client.setex(cache_key, 604800, json.dumps(data)) # 7 days
+        await _redis_set(cache_key, json.dumps(data))
         return data
 
     # 3. Call Gemini
@@ -118,7 +134,7 @@ async def get_ai_research(db: AsyncSession, album_id: str, lang: str = 'en'):
             "confidence": new_record.confidence
         }
         
-        await redis_client.setex(cache_key, 604800, json.dumps(result_data))
+        await _redis_set(cache_key, json.dumps(result_data))
         return result_data
 
     except Exception as e:

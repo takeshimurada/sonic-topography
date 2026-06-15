@@ -9,7 +9,7 @@ interface AppState {
   artistConnections: { creator_id: string; display_name: string; weight: number; image_url?: string | null }[];
   brushedAlbumIds: string[]; // IDs selected via brush tool
   searchMatchedAlbumIds: string[]; // IDs matched by search (for highlighting)
-  
+
   // Filters
   yearRange: [number, number];
   activeRegions: Region[];
@@ -19,9 +19,10 @@ interface AppState {
   // Map View
   viewport: Viewport;
   viewportYearRange: [number, number]; // 현재 뷰포트에서 보이는 연도 범위
-  
+
   // Loading state
   loading: boolean;
+  loadError: string | null;
   
   // Actions
   loadAlbums: () => Promise<void>;
@@ -157,53 +158,58 @@ export const useStore = create<AppState>((set, get) => ({
   viewport: { x: (MIN_YEAR + MAX_YEAR) / 2, y: 0.5, k: 1 },
   viewportYearRange: [MIN_YEAR, MAX_YEAR],
   loading: true,
+  loadError: null,
 
   loadAlbums: async () => {
     try {
-      set({ loading: true });
-      
-      // Step 1: 개발용 유저 ID 확보 (에러가 나도 albums 로딩은 계속)
+      set({ loading: true, loadError: null });
+
       await ensureDevUserId().catch(err => {
         console.warn('⚠️ Dev user initialization failed, but continuing:', err);
       });
-      
+
       console.log('🔄 Loading albums from:', `${BACKEND_URL}/albums?limit=50000`);
-      
-      const response = await fetch(`${BACKEND_URL}/albums?limit=50000`);
-      
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+
+      let response: Response;
+      try {
+        response = await fetch(`${BACKEND_URL}/albums?limit=50000`, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        console.error(`❌ HTTP ${response.status} Error:`, errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-      
+
       const data = await response.json();
-      console.log('📦 API Response:', data);
-      
-      // 백엔드 응답 검증
+
       if (!data || !data.data || !Array.isArray(data.data)) {
-        console.error('❌ Invalid API response format:', data);
         throw new Error('Invalid API response format');
       }
-      
-      // 백엔드 응답을 프론트엔드 타입으로 변환
+
       const albums: Album[] = data.data.map(transformAlbumData);
       console.log(`✅ Loaded ${albums.length} albums`);
-      
+
       const state = get();
       const newState = { ...state, albums, loading: false };
       const filtered = applyFilters(newState as AppState);
-      console.log(`🔍 Filtered albums: ${filtered.length} (activeRegions: ${state.activeRegions.length}, viewportYearRange: [${state.viewportYearRange[0]}, ${state.viewportYearRange[1]}])`);
-      
-      set({ 
+
+      set({
         ...newState,
         filteredAlbums: filtered,
-        loading: false 
+        loading: false,
+        loadError: null,
       });
     } catch (error) {
-      console.error('❌ Failed to load albums:', error);
-      console.error('Error details:', error instanceof Error ? error.message : String(error));
-      set({ loading: false, albums: [], filteredAlbums: [] });
+      const msg = error instanceof Error
+        ? (error.name === 'AbortError' ? 'Connection timed out — backend unreachable.' : error.message)
+        : String(error);
+      console.error('❌ Failed to load albums:', msg);
+      set({ loading: false, albums: [], filteredAlbums: [], loadError: msg });
     }
   },
 

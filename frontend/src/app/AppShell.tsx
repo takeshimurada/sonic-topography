@@ -9,7 +9,7 @@ import { useStore } from '../state/store';
 import { Music2, Sparkles } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
-  const { selectedAlbumId, selectedArtist, artistConnections, loadAlbums, loading, selectArtist } = useStore();
+  const { selectedAlbumId, selectedArtist, artistConnections, loadAlbums, loading, loadError, selectArtist } = useStore();
   const [showMyPanel, setShowMyPanel] = useState(false);
 
   const [panelAlbumId, setPanelAlbumId] = useState<string | null>(null);
@@ -66,11 +66,29 @@ export const AppShell: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="relative w-screen h-screen bg-space overflow-hidden flex items-center justify-center">
+      <div className="relative w-screen h-screen bg-white overflow-hidden flex items-center justify-center">
         <div className="text-center">
           <Music2 className="text-black mx-auto mb-4 animate-pulse" size={48} />
-          <p className="text-black font-bold text-xl">Loading SonicChronos...</p>
-          <p className="text-gray-500 text-sm mt-2">Mapping music history</p>
+          <p className="text-black font-bold text-xl">Loading Sonic Topography...</p>
+          <p className="text-gray-400 text-sm mt-2">Mapping music history</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="relative w-screen h-screen bg-white overflow-hidden flex items-center justify-center">
+        <div className="text-center max-w-sm px-6">
+          <Music2 className="text-gray-300 mx-auto mb-4" size={48} />
+          <p className="text-gray-800 font-bold text-lg mb-2">서버에 연결할 수 없습니다</p>
+          <p className="text-gray-400 text-xs mb-6 font-mono break-all">{loadError}</p>
+          <button
+            onClick={() => loadAlbums()}
+            className="px-5 py-2 bg-black text-white text-sm rounded-full hover:bg-gray-800 transition-colors"
+          >
+            다시 시도
+          </button>
         </div>
       </div>
     );
